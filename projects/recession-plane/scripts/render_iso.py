@@ -1,5 +1,14 @@
-import runpy, numpy as np, pyvista as pv, cadquery as cq
-g = runpy.run_path("recession_plane.py")
+"""Optional annotated pyvista render. Needs: pip install -e .[pyvista]"""
+import runpy
+from pathlib import Path
+
+import cadquery as cq
+import numpy as np
+import pyvista as pv
+
+HERE = Path(__file__).resolve().parent
+g = runpy.run_path(str(HERE.parent / "models" / "recession_plane.py"),
+                   init_globals={"show_object": lambda *a, **k: None})
 b = cq.Solid.extrudeLinear(g["wall_face"], cq.Vector(150,0,0))
 verts, tris = b.tessellate(0.5)
 V = np.array([v.toTuple() for v in verts])/100
@@ -32,4 +41,4 @@ p.enable_parallel_projection()
 c = np.array([2.6,1.5,3.2])
 p.camera.focal_point = c; p.camera.position = c + 20*np.array([-1,-0.75,0.9]); p.camera.up=(0,0,1)
 p.reset_camera(); p.camera.zoom(1.0)
-p.screenshot("recession_iso.png")
+p.screenshot(str(HERE.parent / "recession_iso.png"))

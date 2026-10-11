@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Build outputs
+build/
+_site/
+projects/*/preview*.png

@@ -4,6 +4,7 @@ Units: cm. Coordinates: x = east, perpendicular distance from boundary
 (boundary is x = 0), y = north, z = up from ground at the boundary.
 """
 import math
+
 import cadquery as cq
 
 # ---- Measurements from the sketch -------------------------------------
@@ -71,9 +72,8 @@ else:
     print(f"Breach extents x {bb.xmin:.1f}–{bb.xmax:.1f}, "
           f"y {bb.ymin:.1f}–{bb.ymax:.1f}, z {bb.zmin:.1f}–{bb.zmax:.1f}")
 
-# ---- STEP export ---------------------------------------------------------
-# STEP files are written in mm, and the model is in cm, so scale by 10.
-MM = 10.0
+# ---- Display ---------------------------------------------------------------
+# project.toml sets units = "cm", so cqp scales everything to mm on export.
 Y0, Y1 = -100.0, dy + 100.0          # N–S extent of plane/boundary
 X1 = X_SOUTH + DEPTH                  # how far east to draw the plane
 
@@ -88,16 +88,9 @@ boundary_face = cq.Face.makeFromWires(cq.Wire.makePolygon([
     cq.Vector(0, Y1, R_START), cq.Vector(0, Y0, R_START),
 ], close=True))
 
-asm = cq.Assembly(name="site")
-asm.add(building.scale(MM), name="building", color=cq.Color(0.82, 0.75, 0.62))
-asm.add(plane_face.scale(MM), name="recession_plane",
-        color=cq.Color(0.24, 0.52, 0.85, 0.4))
-asm.add(boundary_face.scale(MM), name="boundary_2.5m",
-        color=cq.Color(0.9, 0.2, 0.2, 0.3))
-asm.add(boundary_line.scale(MM), name="boundary_line", color=cq.Color("red"))
+show_object(building, name="building", options={"color": "#d1bf9e"})
+show_object(plane_face, name="recession_plane", options={"color": "#3d85d8", "alpha": 0.4})
+show_object(boundary_face, name="boundary_2.5m", options={"color": "#e63333", "alpha": 0.3})
+show_object(boundary_line, name="boundary_line", options={"color": "#ff0000"})
 if vol > 1e-3:
-    asm.add(breach.scale(MM), name="breach", color=cq.Color("red"))
-asm.export("site.step")
-print("Wrote site.step (mm)")
-
-# In CQ-editor:  show_object(building); show_object(above_plane)
+    show_object(breach, name="breach", options={"color": "#ff0000"})
