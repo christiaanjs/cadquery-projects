@@ -1,0 +1,9 @@
+title = "Recession plane check"
+description = "Western wall of the proposed building against a 45° height-recession plane starting at 2.5 m on the western boundary."
+units = "cm"
+tags = ["planning", "home"]
+views = ["iso", "front", "side", "top"]
+background = "#ffffff"
+
+[models.recession_plane]
+exploded = false

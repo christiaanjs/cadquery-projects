@@ -1,0 +1,10 @@
+title = "Example: Mounting Bracket"
+description = "A small parametric L-bracket with slots, used to exercise the tooling."
+units = "mm"
+tags = ["example", "mechanical"]
+views = ["iso", "front", "top", "side"]
+
+[[bom]]
+item = "M5 x 12 socket head screw"
+qty = 2
+price = 0.25
