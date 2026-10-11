@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>CadQuery Viewer</title>
+  <style>
+    :root { --bg: #1a1a2e; --panel: rgba(0,0,0,.62); --fg: #e8e8ee; --muted: #9aa; --accent: #8be; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { background: var(--bg); color: var(--fg); font: 12px/1.5 system-ui, sans-serif; overflow: hidden; }
+    #canvas { width: 100%; height: 100%; display: block; }
+    .panel { position: fixed; background: var(--panel); border: 1px solid #ffffff22; border-radius: 8px;
+             padding: 8px 10px; backdrop-filter: blur(4px); }
+    #info { top: 10px; left: 10px; max-width: 260px; }
+    #info b { color: var(--accent); }
+    #status { color: #8f8; } #status.err { color: #f88; }
+    #error { color: #f88; white-space: pre-wrap; max-height: 160px; overflow: auto; }
+    #parts { top: 10px; right: 10px; max-height: 60vh; overflow: auto; min-width: 140px; }
+    #parts label { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 1px 0; }
+    #parts i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #fff4; display: inline-block; }
+    #bar { bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+    button, select { background: #ffffff14; color: var(--fg); border: 1px solid #ffffff2a; border-radius: 5px;
+                     padding: 3px 9px; font: inherit; cursor: pointer; }
+    button:hover, select:hover { background: #ffffff2a; }
+    option { color: #000; }
+    #hint { bottom: 10px; left: 10px; color: var(--muted); }
+    body.embed #hint, body.embed #info h3 { display: none; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div class="panel" id="info">
+    <h3><b id="title">CadQuery Viewer</b></h3>
+    <div id="dims"></div>
+    <div id="status">Loading…</div>
+    <div id="error"></div>
+  </div>
+  <div class="panel" id="parts" hidden></div>
+  <div class="panel" id="bar">
+    <select id="modelsel" hidden></select>
+    <button data-view="iso">Iso</button><button data-view="front">Front</button>
+    <button data-view="side">Side</button><button data-view="top">Top</button>
+    <button id="btn-grid">Grid</button><button id="btn-wire">Wire</button><button id="btn-fit">Fit</button>
+  </div>
+  <div class="panel" id="hint">drag: orbit · right-drag: pan · wheel: zoom</div>
+
+  <script type="importmap">
+  { "imports": {
+      "three": "./vendor/three/three.module.min.js",
+      "three/addons/": "./vendor/three/addons/" } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    // Query: ?model=<file.glb>  ?bg=#rrggbb  ?title=…  ?live=1 (SSE reload)  ?embed=1
+    const q = new URLSearchParams(location.search);
+    const $ = id => document.getElementById(id);
+    if (q.get('embed')) document.body.classList.add('embed');
+
+    const renderer = new THREE.WebGLRenderer({ canvas: $('canvas'), antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 1, 1e6);
+    const controls = new OrbitControls(camera, $('canvas'));
+    controls.enableDamping = true;
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.1));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.6); scene.add(sun);
+    const fill = new THREE.DirectionalLight(0x99b0ff, 0.5); scene.add(fill);
+    const light = new THREE.AmbientLight(0xffffff, 0.2); scene.add(light);
+
+    let grid = null, root = null, wire = false, radius = 100, center = new THREE.Vector3();
+
+    function setBackground(hex) {
+      const c = hex || '#1a1a2e';
+      scene.background = new THREE.Color(c);
+      document.documentElement.style.setProperty('--bg', c);
+      // Pick light/dark UI text for contrast
+      const col = new THREE.Color(c);
+      const lum = 0.2126 * col.r + 0.7152 * col.g + 0.0722 * col.b;
+      document.documentElement.style.setProperty('--fg', lum > 0.55 ? '#111' : '#e8e8ee');
+      document.documentElement.style.setProperty('--panel', lum > 0.55 ? 'rgba(255,255,255,.75)' : 'rgba(0,0,0,.62)');
+      return lum;
+    }
+    let bgLum = setBackground(q.get('bg'));
+
+    function resize() {
+      const w = innerWidth, h = innerHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    addEventListener('resize', resize); resize();
+
+    // glTF is Y-up. cadquery exports Z-up CAD data converted to Y-up, so screen "up" = +Y here.
+    const VIEWS = { iso: [1, 0.8, 1], front: [0, 0, 1], side: [1, 0, 0], top: [0, 1, 0.0001] };
+    function setView(name) {
+      const d = new THREE.Vector3(...VIEWS[name]).normalize();
+      camera.position.copy(center).addScaledVector(d, radius * 3.1);
+      camera.near = radius / 100; camera.far = radius * 100; camera.updateProjectionMatrix();
+      controls.target.copy(center); controls.update();
+    }
+    document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
+    $('btn-fit').onclick = () => setView('iso');
+    $('btn-grid').onclick = () => { if (grid) grid.visible = !grid.visible; };
+    $('btn-wire').onclick = () => { wire = !wire; root?.traverse(o => { if (o.isMesh) o.material.wireframe = wire; }); };
+    addEventListener('keydown', e => { if (e.key === 'g') $('btn-grid').click(); if (e.key === 'w') $('btn-wire').click(); });
+
+    function buildPartsPanel() {
+      const panel = $('parts'); panel.innerHTML = '';
+      // cq.Assembly exports as Scene > "root" > one node per part. Toggle whole parts, not faces.
+      let top = root;
+      while (top.children.length === 1 && top.children[0].children.length) top = top.children[0];
+      const parts = top.children;
+      if (parts.length < 2) { panel.hidden = true; return; }
+      panel.hidden = false;
+      parts.forEach((obj, i) => {
+        const label = document.createElement('label');
+        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true;
+        cb.onchange = () => { obj.visible = cb.checked; };
+        const sw = document.createElement('i');
+        let color = '888888';
+        obj.traverse(o => { if (o.isMesh && o.material.color) color = o.material.color.getHexString(); });
+        sw.style.background = '#' + color;
+        label.append(cb, sw, document.createTextNode((obj.name || 'part ' + (i + 1)).replace(/_/g, ' ')));
+        panel.append(label);
+      });
+    }
+
+    const loader = new GLTFLoader();
+    function load(url) {
+      loader.load(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), gltf => {
+        const keepCam = root !== null;
+        if (root) scene.remove(root);
+        root = gltf.scene;
+        root.traverse(o => {
+          if (!o.isMesh) return;
+          const m = o.material;
+          m.side = THREE.DoubleSide;           // faces/planes should be visible from both sides
+          if (m.opacity < 1) { m.transparent = true; m.depthWrite = false; }
+          m.metalness = Math.min(m.metalness ?? 0, 0.1);
+          m.roughness = Math.max(m.roughness ?? 0.8, 0.6);
+          if (wire) m.wireframe = true;
+        });
+        scene.add(root);
+
+        const box = new THREE.Box3().setFromObject(root);
+        const size = box.getSize(new THREE.Vector3());
+        center = box.getCenter(new THREE.Vector3());
+        radius = Math.max(size.length() / 2, 1e-3);
+        if (grid) scene.remove(grid);
+        const span = Math.max(size.x, size.z) * 2.2, step = niceStep(span / 20);
+        const n = Math.max(2, Math.ceil(span / step / 2) * 2);
+        grid = new THREE.GridHelper(n * step, n, bgLum > .55 ? 0xaab0bd : 0x555577, bgLum > .55 ? 0xd9dce3 : 0x2a2a44);
+        grid.position.set(center.x, box.min.y - radius * 0.002, center.z);
+        scene.add(grid);
+        sun.position.copy(center).add(new THREE.Vector3(1, 1.6, 0.8).multiplyScalar(radius * 3));
+        fill.position.copy(center).add(new THREE.Vector3(-1, 0.4, -1).multiplyScalar(radius * 3));
+        $('dims').textContent = `${size.x.toFixed(0)} × ${size.z.toFixed(0)} × ${size.y.toFixed(0)} mm  (W × D × H)`;
+        if (!keepCam) setView('iso');
+        buildPartsPanel();
+        $('status').textContent = 'Model loaded'; $('status').className = '';
+        $('error').textContent = '';
+        document.body.dataset.ready = '1';
+      }, undefined, err => {
+        $('status').textContent = 'Load failed'; $('status').className = 'err';
+        $('error').textContent = String(err?.message || err);
+      });
+    }
+    function niceStep(v) {
+      const e = 10 ** Math.floor(Math.log10(v));
+      return [1, 2, 5, 10].map(m => m * e).find(s => s >= v) || e;
+    }
+
+    // ---- Model selection (static site: manifest.json lists models; live: /status) ----
+    async function init() {
+      if (q.get('title')) $('title').textContent = q.get('title');
+      const live = q.get('live');
+      let models = [];
+      if (live) {
+        const cfg = await (await fetch('status')).json();
+        models = (cfg.models || []).map(n => ({ name: n, glb: 'model.glb?model=' + encodeURIComponent(n) }));
+        $('title').textContent = cfg.project || 'CadQuery Viewer';
+        if (cfg.background && !q.get('bg')) bgLum = setBackground(cfg.background);
+        const es = new EventSource('events');
+        es.addEventListener('model', e => {
+          const d = JSON.parse(e.data);
+          if (d.error) { $('status').textContent = 'Build error'; $('status').className = 'err'; $('error').textContent = d.error; }
+          else load(current.glb);
+        });
+        es.addEventListener('config', e => {
+          const c = JSON.parse(e.data);
+          if (c.background && !q.get('bg')) bgLum = setBackground(c.background);
+        });
+      } else if (q.get('model')) {
+        models = q.get('model').split(',').map(f => ({ name: f.replace(/\.glb$/, ''), glb: f }));
+      }
+      if (!models.length) { $('status').textContent = 'No model specified'; $('status').className = 'err'; return; }
+      var current = models[0];
+      if (models.length > 1) {
+        const sel = $('modelsel'); sel.hidden = false;
+        models.forEach((m, i) => sel.add(new Option(m.name, i)));
+        sel.onchange = () => { current = models[sel.value]; root = null; load(current.glb); };
+      }
+      load(current.glb);
+    }
+    init();
+
+    (function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); })();
+  </script>
+</body>
+</html>

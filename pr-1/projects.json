@@ -1,0 +1,29 @@
+[
+  {
+    "slug": "example-bracket",
+    "title": "Example: Mounting Bracket",
+    "description": "A small parametric L-bracket with slots, used to exercise the tooling.",
+    "tags": [
+      "example",
+      "mechanical"
+    ],
+    "thumb": "bracket-iso.svg",
+    "models": [
+      "bracket",
+      "bracket_assembly"
+    ]
+  },
+  {
+    "slug": "recession-plane",
+    "title": "Recession plane check",
+    "description": "Western wall of the proposed building against a 45\u00b0 height-recession plane starting at 2.5 m on the western boundary.",
+    "tags": [
+      "planning",
+      "home"
+    ],
+    "thumb": "recession_plane-iso.svg",
+    "models": [
+      "recession_plane"
+    ]
+  }
+]
