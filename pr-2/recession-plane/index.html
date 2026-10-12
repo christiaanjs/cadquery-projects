@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,"><title>Recession plane check — CadQuery Projects</title><style>
+:root { color-scheme: light dark; --bg:#f6f7f9; --fg:#1b1f24; --muted:#667; --card:#fff; --line:#dde1e6; --accent:#1a6bb5; }
+@media (prefers-color-scheme: dark) { :root { --bg:#14161a; --fg:#e6e8eb; --muted:#9aa3ad; --card:#1d2026; --line:#2e333b; --accent:#6db3f2; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:24px 16px 64px; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+h1 { margin:.2em 0 .1em; font-size:1.7rem; } h2 { margin:2em 0 .6em; font-size:1.2rem; border-bottom:1px solid var(--line); padding-bottom:.25em; }
+h3 { margin:1.4em 0 .4em; font-size:1rem; }
+.meta, .muted { color:var(--muted); font-size:.85rem; }
+.tag { display:inline-block; font-size:.75rem; padding:1px 8px; border:1px solid var(--line); border-radius:99px; margin-right:4px; color:var(--muted); background:var(--card); cursor:pointer; }
+.tag.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; margin-top:16px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; color:inherit; display:block; }
+.card:hover { border-color:var(--accent); text-decoration:none; }
+.card img { width:100%; aspect-ratio:3/2; object-fit:contain; background:#fff; display:block; border-bottom:1px solid var(--line); }
+.card div { padding:10px 12px; } .card strong { display:block; }
+.viewer { width:100%; height:520px; border:1px solid var(--line); border-radius:10px; background:#1a1a2e; }
+.drawings { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; }
+.drawings a { background:#fff; border:1px solid var(--line); border-radius:8px; overflow:hidden; display:block; }
+.drawings img { width:100%; display:block; } .drawings span { display:block; padding:3px 10px; font-size:.8rem; background:var(--card); color:var(--muted); }
+table { border-collapse:collapse; width:100%; font-size:.9rem; background:var(--card); border:1px solid var(--line); border-radius:8px; }
+th, td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); } th { color:var(--muted); font-weight:600; font-size:.8rem; }
+td.num { text-align:right; font-variant-numeric:tabular-nums; }
+.dl a { display:inline-block; margin:0 6px 6px 0; padding:2px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card); font-size:.85rem; }
+.readme { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:4px 20px 12px; }
+.readme h1 { display:none; }
+.sw { display:inline-block; width:10px; height:10px; border-radius:2px; border:1px solid #8884; margin-right:6px; }
+code { background:#8882; padding:1px 4px; border-radius:4px; }
+details summary { cursor:pointer; color:var(--muted); }
+</style></head>
+<body><main><p class="meta"><a href="../">← All projects</a></p><h1>Recession plane check</h1><div><span class="tag">planning</span><span class="tag">home</span></div><p>Western wall of the proposed building against a 45° height-recession plane starting at 2.5 m on the western boundary.</p><h2>3D model</h2><p class="meta">895 × 502 × 1145 cm (X × Y × Z) · 1 solid(s) · 71019163.018 cm³</p><iframe class="viewer" loading="lazy" title="3D viewer: recession_plane" src="../viewer/index.html?embed=1&model=../recession-plane/recession_plane.glb&bg=%23ffffff"></iframe><h3>Parts</h3><table><tr><th>Part</th><th>Qty</th><th>Size (L × W × H)</th><th>Volume (cm³)</th></tr><tr><td><span class="sw" style="background:#e53232"></span>boundary_2.5m</td><td class="num">1</td><td>502 × 250 × 0 cm</td><td class="num"></td></tr><tr><td><span class="sw" style="background:#fe0000"></span>boundary_line</td><td class="num">1</td><td>502 × 0 × 0 cm</td><td class="num"></td></tr><tr><td><span class="sw" style="background:#d0be9d"></span>building</td><td class="num">1</td><td>729 × 475 × 302 cm</td><td class="num">71019163.02</td></tr><tr><td><span class="sw" style="background:#3d84d8"></span>recession_plane</td><td class="num">1</td><td>895 × 895 × 502 cm</td><td class="num"></td></tr></table><h3>Drawings</h3><div class="drawings"><a href="recession_plane-iso.svg" target="_blank"><img loading="lazy" src="recession_plane-iso.svg" alt="Iso"><span>Iso</span></a><a href="recession_plane-front.svg" target="_blank"><img loading="lazy" src="recession_plane-front.svg" alt="Front"><span>Front</span></a><a href="recession_plane-side.svg" target="_blank"><img loading="lazy" src="recession_plane-side.svg" alt="Side"><span>Side</span></a><a href="recession_plane-top.svg" target="_blank"><img loading="lazy" src="recession_plane-top.svg" alt="Top"><span>Top</span></a></div><h3>Downloads</h3><div class="dl"><a href="recession_plane.step" download>STEP</a><a href="recession_plane.stl" download>STL</a><a href="recession_plane.glb" download>GLB</a><a href="recession_plane-iso.svg" download>SVG Iso</a><a href="recession_plane-front.svg" download>SVG Front</a><a href="recession_plane-side.svg" download>SVG Side</a><a href="recession_plane-top.svg" download>SVG Top</a></div><h2>About</h2><div class="readme"><h1>Recession plane check</h1>
+<p>Checks the western wall (and roof) of a building against a 45° recession plane that starts at
+2.5 m above ground on the western boundary. Measurements come from a site sketch; the model
+reports clearance at the north eave, the ridge and the south eave, and builds the breach solid
+(if any) where the building pokes above the plane.</p>
+<h2>Status</h2>
+<p><strong>modelling</strong></p>
+<h2>Dimensions</h2>
+<ul>
+<li>Units: cm (cqp converts to mm for exports and the viewer)</li>
+<li>Coordinates: x = east from the boundary, y = north, z = up</li>
+<li>Wall length 328, ridge 475, eaves 310; plane z = 250 + x</li>
+</ul>
+<h2>Notes</h2>
+<ul>
+<li><code>python -m cqp build recession-plane</code> prints the clearance table and breach volume.</li>
+<li><code>scripts/render_iso.py</code> is an optional annotated pyvista render
+  (<code>pip install -e .[pyvista]</code>, then <code>python projects/recession-plane/scripts/render_iso.py</code>).</li>
+</ul></div><p class="meta" style="margin-top:3em">Generated 2026-10-12 01:01 UTC · units: cm</p></main></body></html>

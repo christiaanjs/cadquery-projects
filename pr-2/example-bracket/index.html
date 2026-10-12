@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,"><title>Example: Mounting Bracket — CadQuery Projects</title><style>
+:root { color-scheme: light dark; --bg:#f6f7f9; --fg:#1b1f24; --muted:#667; --card:#fff; --line:#dde1e6; --accent:#1a6bb5; }
+@media (prefers-color-scheme: dark) { :root { --bg:#14161a; --fg:#e6e8eb; --muted:#9aa3ad; --card:#1d2026; --line:#2e333b; --accent:#6db3f2; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:24px 16px 64px; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+h1 { margin:.2em 0 .1em; font-size:1.7rem; } h2 { margin:2em 0 .6em; font-size:1.2rem; border-bottom:1px solid var(--line); padding-bottom:.25em; }
+h3 { margin:1.4em 0 .4em; font-size:1rem; }
+.meta, .muted { color:var(--muted); font-size:.85rem; }
+.tag { display:inline-block; font-size:.75rem; padding:1px 8px; border:1px solid var(--line); border-radius:99px; margin-right:4px; color:var(--muted); background:var(--card); cursor:pointer; }
+.tag.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; margin-top:16px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; color:inherit; display:block; }
+.card:hover { border-color:var(--accent); text-decoration:none; }
+.card img { width:100%; aspect-ratio:3/2; object-fit:contain; background:#fff; display:block; border-bottom:1px solid var(--line); }
+.card div { padding:10px 12px; } .card strong { display:block; }
+.viewer { width:100%; height:520px; border:1px solid var(--line); border-radius:10px; background:#1a1a2e; }
+.drawings { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; }
+.drawings a { background:#fff; border:1px solid var(--line); border-radius:8px; overflow:hidden; display:block; }
+.drawings img { width:100%; display:block; } .drawings span { display:block; padding:3px 10px; font-size:.8rem; background:var(--card); color:var(--muted); }
+table { border-collapse:collapse; width:100%; font-size:.9rem; background:var(--card); border:1px solid var(--line); border-radius:8px; }
+th, td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); } th { color:var(--muted); font-weight:600; font-size:.8rem; }
+td.num { text-align:right; font-variant-numeric:tabular-nums; }
+.dl a { display:inline-block; margin:0 6px 6px 0; padding:2px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card); font-size:.85rem; }
+.readme { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:4px 20px 12px; }
+.readme h1 { display:none; }
+.sw { display:inline-block; width:10px; height:10px; border-radius:2px; border:1px solid #8884; margin-right:6px; }
+code { background:#8882; padding:1px 4px; border-radius:4px; }
+details summary { cursor:pointer; color:var(--muted); }
+</style></head>
+<body><main><p class="meta"><a href="../">← All projects</a></p><h1>Example: Mounting Bracket</h1><div><span class="tag">example</span><span class="tag">mechanical</span></div><p>A small parametric L-bracket with slots, used to exercise the tooling.</p><h2>bracket</h2><p class="meta">60 × 30 × 40 mm (X × Y × Z) · 1 solid(s) · 10.989 cm³</p><iframe class="viewer" loading="lazy" title="3D viewer: bracket" src="../viewer/index.html?embed=1&model=../example-bracket/bracket.glb"></iframe><details><summary>Parameters</summary><table><tr><th>Name</th><th>Default</th></tr><tr><td><code>base_len</code></td><td>60</td></tr><tr><td><code>base_w</code></td><td>30</td></tr><tr><td><code>height</code></td><td>40</td></tr><tr><td><code>thickness</code></td><td>4</td></tr><tr><td><code>slot_len</code></td><td>12</td></tr><tr><td><code>slot_w</code></td><td>5.5</td></tr><tr><td><code>hole_dia</code></td><td>6</td></tr><tr><td><code>fillet</code></td><td>3</td></tr></table></details><h3>Drawings</h3><div class="drawings"><a href="bracket-iso.svg" target="_blank"><img loading="lazy" src="bracket-iso.svg" alt="Iso"><span>Iso</span></a><a href="bracket-front.svg" target="_blank"><img loading="lazy" src="bracket-front.svg" alt="Front"><span>Front</span></a><a href="bracket-top.svg" target="_blank"><img loading="lazy" src="bracket-top.svg" alt="Top"><span>Top</span></a><a href="bracket-side.svg" target="_blank"><img loading="lazy" src="bracket-side.svg" alt="Side"><span>Side</span></a></div><h3>Downloads</h3><div class="dl"><a href="bracket.step" download>STEP</a><a href="bracket.stl" download>STL</a><a href="bracket.glb" download>GLB</a><a href="bracket-iso.svg" download>SVG Iso</a><a href="bracket-front.svg" download>SVG Front</a><a href="bracket-top.svg" download>SVG Top</a><a href="bracket-side.svg" download>SVG Side</a></div><h2>bracket_assembly</h2><p class="meta">60 × 30 × 45 mm (X × Y × Z) · 3 solid(s) · 11.842 cm³</p><iframe class="viewer" loading="lazy" title="3D viewer: bracket_assembly" src="../viewer/index.html?embed=1&model=../example-bracket/bracket_assembly.glb"></iframe><h3>Parts</h3><table><tr><th>Part</th><th>Qty</th><th>Size (L × W × H)</th><th>Volume (cm³)</th></tr><tr><td><span class="sw" style="background:#899ba7"></span>bracket</td><td class="num">1</td><td>60 × 40 × 30 mm</td><td class="num">10.99</td></tr><tr><td><span class="sw" style="background:#323232"></span>screw</td><td class="num">2</td><td>15 × 9 × 9 mm</td><td class="num">0.43</td></tr></table><h3>Drawings</h3><div class="drawings"><a href="bracket_assembly-iso.svg" target="_blank"><img loading="lazy" src="bracket_assembly-iso.svg" alt="Iso"><span>Iso</span></a><a href="bracket_assembly-front.svg" target="_blank"><img loading="lazy" src="bracket_assembly-front.svg" alt="Front"><span>Front</span></a><a href="bracket_assembly-top.svg" target="_blank"><img loading="lazy" src="bracket_assembly-top.svg" alt="Top"><span>Top</span></a><a href="bracket_assembly-side.svg" target="_blank"><img loading="lazy" src="bracket_assembly-side.svg" alt="Side"><span>Side</span></a><a href="bracket_assembly-exploded.svg" target="_blank"><img loading="lazy" src="bracket_assembly-exploded.svg" alt="Exploded"><span>Exploded</span></a></div><h3>Downloads</h3><div class="dl"><a href="bracket_assembly.step" download>STEP</a><a href="bracket_assembly.stl" download>STL</a><a href="bracket_assembly.glb" download>GLB</a><a href="bracket_assembly-iso.svg" download>SVG Iso</a><a href="bracket_assembly-front.svg" download>SVG Front</a><a href="bracket_assembly-top.svg" download>SVG Top</a><a href="bracket_assembly-side.svg" download>SVG Side</a><a href="bracket_assembly-exploded.svg" download>SVG Exploded</a></div><h2>Bill of materials</h2><table><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Price</th><th>Total</th></tr><tr><td>M5 x 12 socket head screw</td><td class="num">2</td><td></td><td class="num">0.25</td><td class="num">0.50</td></tr><tr><td colspan="4"><b>Total</b></td><td class="num"><b>0.50</b></td></tr></table><h2>About</h2><div class="readme"><h1>Example: Mounting Bracket</h1>
+<p>A small parametric L-bracket with two slotted holes in the base and a round hole in the upright.
+It exists to show the project layout and model contract; copy it with <code>cqp new</code>, or delete it.</p>
+<h2>Status</h2>
+<p><strong>complete</strong></p>
+<h2>Notes</h2>
+<ul>
+<li>Edit <code>PARAMS</code> in <code>models/bracket.py</code> and re-run <code>cqp build example-bracket</code>.</li>
+<li><code>models/bracket_assembly.py</code> shows a multi-part model built with <code>show_object(..., options=...)</code>.</li>
+</ul></div><p class="meta" style="margin-top:3em">Generated 2026-10-12 01:01 UTC · units: mm</p></main></body></html>

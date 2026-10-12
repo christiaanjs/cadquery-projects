@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,"><title>Sliding dropouts (UDH / thru-axle) — CadQuery Projects</title><style>
+:root { color-scheme: light dark; --bg:#f6f7f9; --fg:#1b1f24; --muted:#667; --card:#fff; --line:#dde1e6; --accent:#1a6bb5; }
+@media (prefers-color-scheme: dark) { :root { --bg:#14161a; --fg:#e6e8eb; --muted:#9aa3ad; --card:#1d2026; --line:#2e333b; --accent:#6db3f2; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:24px 16px 64px; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+h1 { margin:.2em 0 .1em; font-size:1.7rem; } h2 { margin:2em 0 .6em; font-size:1.2rem; border-bottom:1px solid var(--line); padding-bottom:.25em; }
+h3 { margin:1.4em 0 .4em; font-size:1rem; }
+.meta, .muted { color:var(--muted); font-size:.85rem; }
+.tag { display:inline-block; font-size:.75rem; padding:1px 8px; border:1px solid var(--line); border-radius:99px; margin-right:4px; color:var(--muted); background:var(--card); cursor:pointer; }
+.tag.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; margin-top:16px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; color:inherit; display:block; }
+.card:hover { border-color:var(--accent); text-decoration:none; }
+.card img { width:100%; aspect-ratio:3/2; object-fit:contain; background:#fff; display:block; border-bottom:1px solid var(--line); }
+.card div { padding:10px 12px; } .card strong { display:block; }
+.viewer { width:100%; height:520px; border:1px solid var(--line); border-radius:10px; background:#1a1a2e; }
+.drawings { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; }
+.drawings a { background:#fff; border:1px solid var(--line); border-radius:8px; overflow:hidden; display:block; }
+.drawings img { width:100%; display:block; } .drawings span { display:block; padding:3px 10px; font-size:.8rem; background:var(--card); color:var(--muted); }
+table { border-collapse:collapse; width:100%; font-size:.9rem; background:var(--card); border:1px solid var(--line); border-radius:8px; }
+th, td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); } th { color:var(--muted); font-weight:600; font-size:.8rem; }
+td.num { text-align:right; font-variant-numeric:tabular-nums; }
+.dl a { display:inline-block; margin:0 6px 6px 0; padding:2px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card); font-size:.85rem; }
+.readme { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:4px 20px 12px; }
+.readme h1 { display:none; }
+.sw { display:inline-block; width:10px; height:10px; border-radius:2px; border:1px solid #8884; margin-right:6px; }
+code { background:#8882; padding:1px 4px; border-radius:4px; }
+details summary { cursor:pointer; color:var(--muted); }
+</style></head>
+<body><main><p class="meta"><a href="../">← All projects</a></p><h1>Sliding dropouts (UDH / thru-axle)</h1><div><span class="tag">bike</span><span class="tag">mechanical</span></div><p>Parametric left/right sliding dropout inserts: SRAM UDH + 12 mm thru-axle, flat/post/IS brake mount, axle X/Y and hub-width offsets.</p><h2>assembly</h2><p class="meta">184 × 180 × 160 mm (X × Y × Z) · 7 solid(s) · 260.344 cm³</p><iframe class="viewer" loading="lazy" title="3D viewer: assembly" src="../viewer/index.html?embed=1&model=../sliding-dropouts/assembly.glb&bg=%23ffffff"></iframe><details><summary>Parameters</summary><table><tr><th>Name</th><th>Default</th></tr><tr><td><code>frame_old</code></td><td>142</td></tr><tr><td><code>hub_width_offset</code></td><td>0.0</td></tr><tr><td><code>axle_offset_x</code></td><td>0.0</td></tr><tr><td><code>axle_offset_y</code></td><td>0.0</td></tr><tr><td><code>plate_thickness</code></td><td>9.0</td></tr><tr><td><code>min_plate_thickness</code></td><td>4.0</td></tr><tr><td><code>tongue_length</code></td><td>86.0</td></tr><tr><td><code>tongue_height</code></td><td>26.0</td></tr><tr><td><code>corner_radius</code></td><td>5.0</td></tr><tr><td><code>boss_radius</code></td><td>19.0</td></tr><tr><td><code>bolt_x</code></td><td>48.0</td></tr><tr><td><code>bolt_pitch</code></td><td>20.0</td></tr><tr><td><code>key_width</code></td><td>13.0</td></tr><tr><td><code>key_height</code></td><td>3.0</td></tr><tr><td><code>bolt_tap_dia</code></td><td>5.0</td></tr><tr><td><code>adjuster_tap_dia</code></td><td>3.3</td></tr><tr><td><code>adjuster_depth</code></td><td>10.0</td></tr><tr><td><code>udh_pocket_radius</code></td><td>15.5</td></tr><tr><td><code>udh_thick_forward</code></td><td>28.0</td></tr><tr><td><code>udh_bore_clearance</code></td><td>0.05</td></tr><tr><td><code>nds_thickness_D</code></td><td>15.0</td></tr><tr><td><code>nds_protrusion_dia</code></td><td>26.0</td></tr><tr><td><code>axle_hole_dia</code></td><td>12.2</td></tr><tr><td><code>brake_mount</code></td><td>flat</td></tr><tr><td><code>rotor</code></td><td>160</td></tr><tr><td><code>brake_angle</code></td><td>0.0</td></tr><tr><td><code>rotor_clearance</code></td><td>2.0</td></tr><tr><td><code>brake_boss_size</code></td><td>18.0</td></tr><tr><td><code>post_height</code></td><td>16.0</td></tr><tr><td><code>flat_tab_thickness</code></td><td>10.0</td></tr><tr><td><code>is_tab_thickness</code></td><td>8.0</td></tr><tr><td><code>post_tap_dia</code></td><td>5.0</td></tr><tr><td><code>flat_hole_dia</code></td><td>5.5</td></tr><tr><td><code>is_hole_dia</code></td><td>6.2</td></tr><tr><td><code>frame_plate_thickness</code></td><td>6.0</td></tr><tr><td><code>frame_edge_x</code></td><td>30.0</td></tr><tr><td><code>frame_plate_front</code></td><td>104.0</td></tr><tr><td><code>frame_plate_margin</code></td><td>7.0</td></tr><tr><td><code>slot_travel</code></td><td>12.0</td></tr></table></details><h3>Parts</h3><table><tr><th>Part</th><th>Qty</th><th>Size (L × W × H)</th><th>Volume (cm³)</th></tr><tr><td><span class="sw" style="background:#5b676f"></span>dropout_left</td><td class="num">1</td><td>107 × 40.1 × 25.6 mm</td><td class="num">42.97</td></tr><tr><td><span class="sw" style="background:#5b676f"></span>dropout_right</td><td class="num">1</td><td>105 × 38 × 16.5 mm</td><td class="num">33.82</td></tr><tr><td><span class="sw" style="background:#9aa5ac"></span>frame_plate_left</td><td class="num">1</td><td>74 × 40 × 6 mm</td><td class="num">14.34</td></tr><tr><td><span class="sw" style="background:#9aa5ac"></span>frame_plate_right</td><td class="num">1</td><td>74 × 40 × 6 mm</td><td class="num">14.34</td></tr><tr><td><span class="sw" style="background:#c8b07a"></span>hub</td><td class="num">1</td><td>142 × 30 × 30 mm</td><td class="num">100.37</td></tr><tr><td><span class="sw" style="background:#b0b0b0"></span>rotor</td><td class="num">1</td><td>160 × 160 × 1.75 mm</td><td class="num">33.6</td></tr><tr><td><span class="sw" style="background:#222222"></span>thru_axle</td><td class="num">1</td><td>177 × 24 × 24 mm</td><td class="num">20.91</td></tr></table><h3>Drawings</h3><div class="drawings"><a href="assembly-iso.svg" target="_blank"><img loading="lazy" src="assembly-iso.svg" alt="Iso"><span>Iso</span></a><a href="assembly-front.svg" target="_blank"><img loading="lazy" src="assembly-front.svg" alt="Front"><span>Front</span></a><a href="assembly-back.svg" target="_blank"><img loading="lazy" src="assembly-back.svg" alt="Back"><span>Back</span></a><a href="assembly-top.svg" target="_blank"><img loading="lazy" src="assembly-top.svg" alt="Top"><span>Top</span></a><a href="assembly-side.svg" target="_blank"><img loading="lazy" src="assembly-side.svg" alt="Side"><span>Side</span></a><a href="assembly-exploded.svg" target="_blank"><img loading="lazy" src="assembly-exploded.svg" alt="Exploded"><span>Exploded</span></a></div><h3>Downloads</h3><div class="dl"><a href="assembly.step" download>STEP</a><a href="assembly.stl" download>STL</a><a href="assembly.glb" download>GLB</a><a href="assembly-iso.svg" download>SVG Iso</a><a href="assembly-front.svg" download>SVG Front</a><a href="assembly-back.svg" download>SVG Back</a><a href="assembly-top.svg" download>SVG Top</a><a href="assembly-side.svg" download>SVG Side</a><a href="assembly-exploded.svg" download>SVG Exploded</a></div><h2>dropout_left</h2><p class="meta">107 × 25.6 × 40.1 mm (X × Y × Z) · 1 solid(s) · 42.969 cm³</p><iframe class="viewer" loading="lazy" title="3D viewer: dropout_left" src="../viewer/index.html?embed=1&model=../sliding-dropouts/dropout_left.glb&bg=%23ffffff"></iframe><details><summary>Parameters</summary><table><tr><th>Name</th><th>Default</th></tr><tr><td><code>frame_old</code></td><td>142</td></tr><tr><td><code>hub_width_offset</code></td><td>0.0</td></tr><tr><td><code>axle_offset_x</code></td><td>0.0</td></tr><tr><td><code>axle_offset_y</code></td><td>0.0</td></tr><tr><td><code>plate_thickness</code></td><td>9.0</td></tr><tr><td><code>min_plate_thickness</code></td><td>4.0</td></tr><tr><td><code>tongue_length</code></td><td>86.0</td></tr><tr><td><code>tongue_height</code></td><td>26.0</td></tr><tr><td><code>corner_radius</code></td><td>5.0</td></tr><tr><td><code>boss_radius</code></td><td>19.0</td></tr><tr><td><code>bolt_x</code></td><td>48.0</td></tr><tr><td><code>bolt_pitch</code></td><td>20.0</td></tr><tr><td><code>key_width</code></td><td>13.0</td></tr><tr><td><code>key_height</code></td><td>3.0</td></tr><tr><td><code>bolt_tap_dia</code></td><td>5.0</td></tr><tr><td><code>adjuster_tap_dia</code></td><td>3.3</td></tr><tr><td><code>adjuster_depth</code></td><td>10.0</td></tr><tr><td><code>nds_thickness_D</code></td><td>15.0</td></tr><tr><td><code>nds_protrusion_dia</code></td><td>26.0</td></tr><tr><td><code>axle_hole_dia</code></td><td>12.2</td></tr><tr><td><code>brake_mount</code></td><td>flat</td></tr><tr><td><code>rotor</code></td><td>160</td></tr><tr><td><code>brake_angle</code></td><td>0.0</td></tr><tr><td><code>rotor_clearance</code></td><td>2.0</td></tr><tr><td><code>brake_boss_size</code></td><td>18.0</td></tr><tr><td><code>post_height</code></td><td>16.0</td></tr><tr><td><code>flat_tab_thickness</code></td><td>10.0</td></tr><tr><td><code>is_tab_thickness</code></td><td>8.0</td></tr><tr><td><code>post_tap_dia</code></td><td>5.0</td></tr><tr><td><code>flat_hole_dia</code></td><td>5.5</td></tr><tr><td><code>is_hole_dia</code></td><td>6.2</td></tr></table></details><h3>Drawings</h3><div class="drawings"><a href="dropout_left-iso.svg" target="_blank"><img loading="lazy" src="dropout_left-iso.svg" alt="Iso"><span>Iso</span></a><a href="dropout_left-front.svg" target="_blank"><img loading="lazy" src="dropout_left-front.svg" alt="Front"><span>Front</span></a><a href="dropout_left-back.svg" target="_blank"><img loading="lazy" src="dropout_left-back.svg" alt="Back"><span>Back</span></a><a href="dropout_left-top.svg" target="_blank"><img loading="lazy" src="dropout_left-top.svg" alt="Top"><span>Top</span></a></div><h3>Downloads</h3><div class="dl"><a href="dropout_left.step" download>STEP</a><a href="dropout_left.stl" download>STL</a><a href="dropout_left.glb" download>GLB</a><a href="dropout_left-iso.svg" download>SVG Iso</a><a href="dropout_left-front.svg" download>SVG Front</a><a href="dropout_left-back.svg" download>SVG Back</a><a href="dropout_left-top.svg" download>SVG Top</a></div><h2>dropout_right</h2><p class="meta">105 × 16.5 × 38 mm (X × Y × Z) · 1 solid(s) · 33.823 cm³</p><iframe class="viewer" loading="lazy" title="3D viewer: dropout_right" src="../viewer/index.html?embed=1&model=../sliding-dropouts/dropout_right.glb&bg=%23ffffff"></iframe><details><summary>Parameters</summary><table><tr><th>Name</th><th>Default</th></tr><tr><td><code>frame_old</code></td><td>142</td></tr><tr><td><code>hub_width_offset</code></td><td>0.0</td></tr><tr><td><code>axle_offset_x</code></td><td>0.0</td></tr><tr><td><code>axle_offset_y</code></td><td>0.0</td></tr><tr><td><code>plate_thickness</code></td><td>9.0</td></tr><tr><td><code>min_plate_thickness</code></td><td>4.0</td></tr><tr><td><code>tongue_length</code></td><td>86.0</td></tr><tr><td><code>tongue_height</code></td><td>26.0</td></tr><tr><td><code>corner_radius</code></td><td>5.0</td></tr><tr><td><code>boss_radius</code></td><td>19.0</td></tr><tr><td><code>bolt_x</code></td><td>48.0</td></tr><tr><td><code>bolt_pitch</code></td><td>20.0</td></tr><tr><td><code>key_width</code></td><td>13.0</td></tr><tr><td><code>key_height</code></td><td>3.0</td></tr><tr><td><code>bolt_tap_dia</code></td><td>5.0</td></tr><tr><td><code>adjuster_tap_dia</code></td><td>3.3</td></tr><tr><td><code>adjuster_depth</code></td><td>10.0</td></tr><tr><td><code>udh_pocket_radius</code></td><td>15.5</td></tr><tr><td><code>udh_thick_forward</code></td><td>28.0</td></tr><tr><td><code>udh_bore_clearance</code></td><td>0.05</td></tr></table></details><h3>Drawings</h3><div class="drawings"><a href="dropout_right-iso.svg" target="_blank"><img loading="lazy" src="dropout_right-iso.svg" alt="Iso"><span>Iso</span></a><a href="dropout_right-front.svg" target="_blank"><img loading="lazy" src="dropout_right-front.svg" alt="Front"><span>Front</span></a><a href="dropout_right-back.svg" target="_blank"><img loading="lazy" src="dropout_right-back.svg" alt="Back"><span>Back</span></a><a href="dropout_right-top.svg" target="_blank"><img loading="lazy" src="dropout_right-top.svg" alt="Top"><span>Top</span></a></div><h3>Downloads</h3><div class="dl"><a href="dropout_right.step" download>STEP</a><a href="dropout_right.stl" download>STL</a><a href="dropout_right.glb" download>GLB</a><a href="dropout_right-iso.svg" download>SVG Iso</a><a href="dropout_right-front.svg" download>SVG Front</a><a href="dropout_right-back.svg" download>SVG Back</a><a href="dropout_right-top.svg" download>SVG Top</a></div><h2>About</h2><div class="readme"><h1>Sliding dropouts (UDH / thru-axle)</h1>
+<p>Parametric left and right sliding dropout inserts for a 12 mm thru-axle rear end:</p>
+<ul>
+<li><strong>Right (drive):</strong> SRAM UDH hangerless interface (coaxial hanger / Full Mount RD).</li>
+<li><strong>Left (non-drive):</strong> thru-axle boss and a choice of rear brake mount: flat (34 mm), post (74 mm),
+  IS2000 (51 mm) or none, positioned for any rotor size.</li>
+<li>Both: axle X/Y offset from the frame's nominal position, and a hub width offset to fit a wider
+  (or narrower) hub than the frame was built for.</li>
+</ul>
+<h2>Status</h2>
+<p><strong>draft.</strong> Geometry follows the specs in this folder but has not been checked against SRAM's 3D
+clearance models or a real caliper. Not yet made.</p>
+<h2>Models</h2>
+<table>
+<thead>
+<tr>
+<th>model</th>
+<th>what</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dropout_right</code></td>
+<td>drive-side insert (UDH)</td>
+</tr>
+<tr>
+<td><code>dropout_left</code></td>
+<td>non-drive insert with brake mount</td>
+</tr>
+<tr>
+<td><code>assembly</code></td>
+<td>both inserts in their frame socket plates, with thru-axle, hub and rotor (translucent refs)</td>
+</tr>
+</tbody>
+</table>
+<p>Shared parameters are <code>PARAMS</code> in <code>models/_common.py</code>; side-specific ones are <code>RIGHT_PARAMS</code>,
+<code>LEFT_PARAMS</code> and <code>FRAME_PLATE</code> there too. <code>dropout_left.py</code> / <code>dropout_right.py</code> merge them into
+their own <code>PARAMS</code>, and <code>assembly.py</code> uses all of them, so edit <code>_common.py</code> to change both sides together.</p>
+<h2>Construction</h2>
+<p>Modelled on the Tange sliding inserts in the pictures here (<code>tange-*.jpg/png</code>): a flat plate with a
+raised stadium <strong>key</strong> around two clamp bolts. Each insert sits on the <strong>inboard</strong> face of the
+frame's socket plate with its key riding in the frame slot (<code>slot_travel</code> of adjustment). Two M6
+bolts go through an outer clamp plate and the slot into tapped holes in the key; an M4 adjuster
+screw is tapped into the tongue's front end. The frame plate stops ahead of the axle boss
+(<code>frame_edge_x</code>), so the boss can be as thick as the interface needs. <code>cqp build</code> prints the
+minimum frame plate rear edge for the current axle offset.</p>
+<p>Coordinates: origin = the frame's nominal axle centre, X forward, Z up, +Y = left. The <code>front</code> view
+looks at the drive side; <code>back</code> at the brake side.</p>
+<h2>Key parameters</h2>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>default</th>
+<th>meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>frame_old</code></td>
+<td>142</td>
+<td>hub OLD the frame's insert seats were built for</td>
+</tr>
+<tr>
+<td><code>hub_width_offset</code></td>
+<td>0</td>
+<td>extra hub OLD (total). e.g. 6 runs a 148 hub in a 142 frame; each insert plate gets 3 mm thinner</td>
+</tr>
+<tr>
+<td><code>axle_offset_x</code></td>
+<td>0</td>
+<td>+ moves the axle rearward (longer chainstays)</td>
+</tr>
+<tr>
+<td><code>axle_offset_y</code></td>
+<td>0</td>
+<td>+ moves the axle up</td>
+</tr>
+<tr>
+<td><code>key_width</code> / <code>key_height</code></td>
+<td>13 / 3</td>
+<td>raised key that rides in the frame slot (keep <code>key_height</code> below the frame plate thickness)</td>
+</tr>
+<tr>
+<td><code>plate_thickness</code></td>
+<td>9</td>
+<td>insert plate thickness at zero hub offset (min <code>min_plate_thickness</code> = 4)</td>
+</tr>
+<tr>
+<td><code>brake_mount</code></td>
+<td>flat</td>
+<td><code>flat</code>, <code>post</code>, <code>is</code> or <code>none</code></td>
+</tr>
+<tr>
+<td><code>rotor</code></td>
+<td>160</td>
+<td>rotor diameter the mount is positioned for</td>
+</tr>
+<tr>
+<td><code>brake_angle</code></td>
+<td>0</td>
+<td>rotates the mount about the axle (0 = mount line along +X, face up)</td>
+</tr>
+<tr>
+<td><code>nds_thickness_D</code></td>
+<td>15</td>
+<td>UDH sheet 3 "D": hub face → axle-head face; sets axle length L1 = D + OLD + 17</td>
+</tr>
+</tbody>
+</table>
+<h2>Interface dimensions used</h2>
+<p><strong>UDH (drive side), from <code>udh_frame_spec.py</code> / <code>udh-spec.pdf</code> sheets 1–3:</strong>
+- Frame span (inboard faces) OLD + 7, so each inboard face sits at (OLD + 7)/2.
+- Hanger pocket 4 deep from the inboard face (floor = datum B), radius 15.5 (R15 MIN + position tol.).
+- 12.5 from datum B to the outboard face, so the boss is 16.5 thick. Ø20.05 bore (20 +0.1/0).
+- Forward rotational stop: pocket wall 14.4 from the axle, normal 30° above +X (forward-up). The
+  build checks its contact area is ≥ 10 mm². The pocket is open behind and below the axle for the
+  ≥ 60° backward rotation.
+- Boss outer radius 19 (R14.5–19.0).</p>
+<p><strong>Non-drive:</strong> Ø26 hub-contact protrusion 3.5 mm proud of the inboard face (sheet 1 "alternative
+design", Ø25 min), Ø12.2 axle hole, axle-head face at OLD/2 + D.</p>
+<p><strong>Brake (from <code>disc_brake_mounts.py</code>):</strong> face/bolt ordinates from Verdone's linear model for the
+chosen rotor. Lateral position: hub rotor inner face (142: 53.25, 148: 55.25) plus the mount's
+screw offset (post 9.55, flat 12.20, IS 15.25). Bosses are kept <code>rotor_clearance</code> (2 mm) outboard of
+the rotor. Post: M6 tapped, 13 deep. Flat: M5 clearance holes (bolts from below). IS: Ø6.2 plain holes.</p>
+<h2>Notes and caveats</h2>
+<ul>
+<li><code>udh_frame_spec.py</code> labels the 12.5 mm as "recess floor to inboard face". In Section Z-Z the
+  hanger is on the left (inboard) and the 12.5 runs from datum B to the right-hand face, so it is
+  modelled here as datum B to the <strong>outboard</strong> face. Check this against the PDF.</li>
+<li><code>disc_brake_mounts.py</code> has <code>threaded_in_frame=True</code> for flat mount but also says the bolts go in
+  from below the chainstay. The model uses clearance holes; change <code>flat_hole_dia</code> to 4.2 for M5 threads.</li>
+<li>The brake mount orientation (<code>brake_angle</code>) is free: rotating the caliper about the axle keeps it on
+  the rotor. Pick an angle that clears your stays; the web joining the mount to the insert is a plain
+  convex hull in the plate plane.</li>
+<li>Rotor lateral data only covers 142 and 148 mm hubs. Other hub widths raise an error unless
+  <code>brake_mount = "none"</code>.</li>
+<li>Verdone's model diverges from Shimano's post-mount numbers at 180/203 mm (see
+  <code>disc_brake_mounts.compare_post_mount_to_shimano</code>).</li>
+<li>UDH use needs a (free) SRAM licence. Verify the right insert against the hangerless clearance
+  model 90-7518-190-070 Rev H before making parts. Dropouts are safety-critical.</li>
+</ul>
+<h2>Materials</h2>
+<p>Intended for 7075-T6 or 6061-T6 aluminium, or stainless steel, machined. Contact faces around the
+axle must be flat and left unpainted.</p></div><p class="meta" style="margin-top:3em">Generated 2026-10-12 01:01 UTC · units: mm</p></main></body></html>
