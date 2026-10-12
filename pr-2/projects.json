@@ -36,15 +36,16 @@
       "bike",
       "mechanical"
     ],
-    "thumb": "tange-post/assembly-iso.svg",
+    "thumb": "tange-is/assembly-iso.svg",
     "models": [
       "assembly",
       "dropout_left",
       "dropout_right"
     ],
     "variants": [
-      "tange-post",
-      "flat-offset-148"
+      "tange-is",
+      "flat-offset-148",
+      "is-offset-148"
     ]
   }
 ]

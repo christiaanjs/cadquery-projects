@@ -35,7 +35,7 @@ details summary { cursor:pointer; color:var(--muted); }
 td.set, .set code { font-weight:600; color:var(--accent); }
 .overrides { margin:4px 0 0; font-size:.82rem; color:var(--muted); }
 </style></head>
-<body><main><p class="meta"><a href="../">← All projects</a></p><h1>Sliding dropouts (UDH / thru-axle)</h1><div><span class="tag">bike</span><span class="tag">mechanical</span></div><p>Parametric left/right sliding dropout inserts: SRAM UDH + 12 mm thru-axle, flat/post/IS brake mount, axle X/Y and hub-width offsets.</p><h2>Variants</h2><div class="grid"><a class="card" href="tange-post/"><img loading="lazy" src="tange-post/assembly-iso.svg" alt=""><div><strong>Tange layout, post mount</strong><span class="muted">Tange-style proportions with the axle at the nominal position, post-mount brake, 142 hub.</span><p class="overrides set"><code>axle_offset_x = 0.0</code> · <code>axle_offset_y = 0.0</code> · <code>brake_mount = post</code> · <code>hub_width_offset = 0.0</code></p></div></a><a class="card" href="flat-offset-148/"><img loading="lazy" src="flat-offset-148/assembly-iso.svg" alt=""><div><strong>Flat mount, axle 32 back &amp; up, 148 hub</strong><span class="muted">Axle 32 mm rearward and 32 mm up from the Tange position, flat-mount brake, +6 mm hub width (142 frame, 148 hub).</span><p class="overrides set"><code>axle_offset_x = 32.0</code> · <code>axle_offset_y = 32.0</code> · <code>brake_mount = flat</code> · <code>hub_width_offset = 6.0</code></p></div></a></div><h2>About</h2><div class="readme"><h1>Sliding dropouts (UDH / thru-axle)</h1>
+<body><main><p class="meta"><a href="../">← All projects</a></p><h1>Sliding dropouts (UDH / thru-axle)</h1><div><span class="tag">bike</span><span class="tag">mechanical</span></div><p>Parametric left/right sliding dropout inserts: SRAM UDH + 12 mm thru-axle, flat/post/IS brake mount, axle X/Y and hub-width offsets.</p><h2>Variants</h2><div class="grid"><a class="card" href="tange-is/"><img loading="lazy" src="tange-is/assembly-iso.svg" alt=""><div><strong>Tange layout, IS mount</strong><span class="muted">Tange-style proportions with the axle at the nominal position, IS brake mount, 142 hub.</span><p class="overrides set"><code>axle_offset_x = 0.0</code> · <code>axle_offset_y = 0.0</code> · <code>brake_mount = is</code> · <code>hub_width_offset = 0.0</code></p></div></a><a class="card" href="flat-offset-148/"><img loading="lazy" src="flat-offset-148/assembly-iso.svg" alt=""><div><strong>Flat mount, axle 32 back &amp; up, 148 hub</strong><span class="muted">Axle 32 mm rearward and 32 mm up from the Tange position, flat-mount brake, +6 mm hub width (142 frame, 148 hub) with a bent plate.</span><p class="overrides set"><code>axle_offset_x = 32.0</code> · <code>axle_offset_y = 32.0</code> · <code>brake_mount = flat</code> · <code>hub_width_offset = 6.0</code> · <code>hub_offset_mode = bend</code></p></div></a><a class="card" href="is-offset-148/"><img loading="lazy" src="is-offset-148/assembly-iso.svg" alt=""><div><strong>IS mount, axle 24 back &amp; up, 148 hub</strong><span class="muted">IS brake mount, +6 mm hub width (142 frame, 148 hub) with a bent plate. 24 mm back and up is the smallest equal offset that lets the bend clear the frame plate (about 23.75 mm with the bend ending 2 mm before the axle boss).</span><p class="overrides set"><code>axle_offset_x = 24.0</code> · <code>axle_offset_y = 24.0</code> · <code>brake_mount = is</code> · <code>hub_width_offset = 6.0</code> · <code>hub_offset_mode = bend</code> · <code>bend_start = 29.0</code></p></div></a></div><h2>About</h2><div class="readme"><h1>Sliding dropouts (UDH / thru-axle)</h1>
 <p>Parametric left and right sliding dropout inserts for a 12 mm thru-axle rear end:</p>
 <ul>
 <li><strong>Right (drive):</strong> SRAM UDH hangerless interface (coaxial hanger / Full Mount RD).</li>
@@ -74,7 +74,7 @@ clearance models or a real caliper. Not yet made.</p>
 <code>LEFT_PARAMS</code> and <code>FRAME_PLATE</code> there too. <code>dropout_left.py</code> / <code>dropout_right.py</code> merge them into
 their own <code>PARAMS</code>, and <code>assembly.py</code> uses all of them, so edit <code>_common.py</code> to change both sides together.</p>
 <h2>Variants</h2>
-<p>The site publishes two variants (set in <code>project.toml</code> under <code>[[variants]]</code>), each with its own
+<p>The site publishes three variants (set in <code>project.toml</code> under <code>[[variants]]</code>), each with its own
 page, drawings and downloads:</p>
 <table>
 <thead>
@@ -87,8 +87,8 @@ page, drawings and downloads:</p>
 </thead>
 <tbody>
 <tr>
-<td><code>tange-post</code></td>
-<td>post mount</td>
+<td><code>tange-is</code></td>
+<td>IS mount</td>
 <td>0 / 0 (Tange proportions)</td>
 <td>142 (frame 142)</td>
 </tr>
@@ -96,11 +96,20 @@ page, drawings and downloads:</p>
 <td><code>flat-offset-148</code></td>
 <td>flat mount</td>
 <td>32 / 32 (back and up)</td>
-<td>148 (frame 142, <code>hub_width_offset</code> = 6)</td>
+<td>148 (frame 142, <code>hub_width_offset</code> = 6, bent plate)</td>
+</tr>
+<tr>
+<td><code>is-offset-148</code></td>
+<td>IS mount</td>
+<td>24 / 24 (back and up)</td>
+<td>148 (frame 142, <code>hub_width_offset</code> = 6, bent plate, <code>bend_start</code> = 29)</td>
 </tr>
 </tbody>
 </table>
-<p><code>cqp build sliding-dropouts</code> builds both. <code>cqp render sliding-dropouts --variant tange-post</code> previews
+<p>For <code>is-offset-148</code>, 24 mm is the smallest equal back-and-up offset at which the bent plate clears the
+frame plate. With the bend ending 2 mm before the axle boss, the limit is about 23.75 mm; below that,
+either the bend doesn't fit or the raised axle region overlaps the frame plate.</p>
+<p><code>cqp build sliding-dropouts</code> builds all three. <code>cqp render sliding-dropouts --variant tange-is</code> previews
 one; without <code>--variant</code> the <code>PARAMS</code> defaults below are used.</p>
 <h2>Construction</h2>
 <p>Modelled on the Tange sliding inserts in the pictures here (<code>tange-*.jpg/png</code>). The default
@@ -117,12 +126,19 @@ The axle offsets then move the axle 32 mm back and 32 mm up from there by defaul
 reaches further back and up to the boss than on the Tange parts. Set both offsets to 0 for the
 Tange proportions.</p>
 <p><strong>Outline.</strong> Each plate starts as the convex hull of the axle boss, the tongue corners and the
-brake bosses. Reliefs then cut gentle concave curves into the straight edges between features, as
-on the Tange parts: between the brake posts, between the brake mount and the axle, and between the
-axle and the slider. Each relief is centred on its edge, and its depth is capped at 0.3 × its
-length. The cut is the largest one that keeps <code>relief_margin</code> clear of the key (including its
-slide), the bolt and adjuster holes, the brake bosses, IS ear rings and the UDH stop face; its ends
-are filleted. <code>cqp build</code> prints each relief's depth and length.</p>
+brake bosses: one circle per IS ear, and circles at the rounded corners of each post block and the
+flat tab. Reliefs then replace straight hull edges with smooth concave curves, as on the Tange
+parts. The outline follows the first feature's circle a little further round, then a cubic Bézier
+runs tangent-continuously into the next feature's circle, so there are no corners to fillet.</p>
+<p>Each section can be switched on or off: <code>relieve_brake_posts</code>, <code>relieve_brake_axle</code>,
+<code>relieve_slider_brake</code> (key region to brake mount) and <code>relieve_axle_slider</code>. The last is off by
+default, so no variant relieves between the key and the axle. The relief used on each edge is the
+largest (by area removed) that:
+- stays within <code>relief_max_depth</code> and <code>relief_max_ratio</code> × the edge length;
+- keeps <code>relief_margin</code> clear of the key (including its slide), the adjuster hole, the side of each
+  brake boss facing the plate, the IS ear rings and the UDH stop face;
+- doesn't cut into any other feature.</p>
+<p><code>cqp build</code> prints each relief's depth and edge length.</p>
 <p><strong>Hub offset bend.</strong> The frame's plate seat is fixed, so a wider hub would otherwise need a thinner
 plate. With <code>hub_offset_mode = "bend"</code> the plate keeps its full thickness. The slider region stays
 on the frame seat and the axle region steps outboard by <code>hub_width_offset / 2</code>, joined by a sloped
@@ -164,14 +180,19 @@ looks at the drive side; <code>back</code> at the brake side.</p>
 <td>where the bend starts (from the key centre towards the axle) and its sloped length</td>
 </tr>
 <tr>
-<td><code>relief_brake_posts</code> / <code>relief_brake_axle</code> / <code>relief_axle_slider</code> / <code>relief_slider_brake</code></td>
-<td>10 / 10 / 8 / 0</td>
-<td>maximum depth of the concave cut-outs between those features (0 = none)</td>
+<td><code>relieve_brake_posts</code> / <code>relieve_brake_axle</code> / <code>relieve_slider_brake</code> / <code>relieve_axle_slider</code></td>
+<td>on / on / on / off</td>
+<td>relieve that section of the outline</td>
 </tr>
 <tr>
-<td><code>relief_margin</code> / <code>relief_round</code> / <code>relief_min_chord</code></td>
-<td>4 / 3 / 15</td>
-<td>material kept around the key, bolts, adjuster, brake bosses and the UDH stop; fillet at the cut ends; shortest cut worth making</td>
+<td><code>relief_max_depth</code> / <code>relief_max_ratio</code></td>
+<td>12 / 0.35</td>
+<td>deepest a relief may cut in from the hull edge, absolutely and as a fraction of the edge length</td>
+</tr>
+<tr>
+<td><code>relief_margin</code> / <code>relief_min_chord</code></td>
+<td>4 / 15</td>
+<td>material kept around the key, adjuster, brake bosses and the UDH stop; shortest edge worth relieving</td>
 </tr>
 <tr>
 <td><code>brake_edge_radius</code></td>
@@ -260,6 +281,12 @@ the Tange IS insert.</p>
   the insert is a plain convex hull in the plate plane.</li>
 <li>Rotor lateral data only covers 142 and 148 mm hubs. Other hub widths raise an error unless
   <code>brake_mount = "none"</code>.</li>
+<li><strong>Rotor shift with <code>hub_width_offset</code>:</strong> the brake mount follows the actual hub's rotor position
+  from <code>disc_brake_mounts.ROTOR_FACE_FROM_CENTER</code>: 53.25 for 142, 55.25 for 148. So +6 mm of hub
+  width moves the rotor out <strong>2.0 mm</strong>, not <code>hub_width_offset / 2</code> = 3.0 mm, even though the hub
+  faces move 3.0 mm. Verdone gives 53.25 in his list and 52.25 in his equation text for 142 (see
+  the note in <code>disc_brake_mounts.py</code>). 52.25 would give exactly 3.0 mm, which matches Boost moving
+  the whole hub 3 mm per side. Confirm which value is right before machining a brake mount.</li>
 <li>Verdone's model diverges from Shimano's post-mount numbers at 180/203 mm (see
   <code>disc_brake_mounts.compare_post_mount_to_shimano</code>).</li>
 <li>UDH use needs a (free) SRAM licence. Verify the right insert against the hangerless clearance
@@ -267,4 +294,4 @@ the Tange IS insert.</p>
 </ul>
 <h2>Materials</h2>
 <p>Intended for 7075-T6 or 6061-T6 aluminium, or stainless steel, machined. Contact faces around the
-axle must be flat and left unpainted.</p></div><p class="meta" style="margin-top:3em">Generated 2026-10-12 02:08 UTC · units: mm</p></main></body></html>
+axle must be flat and left unpainted.</p></div><p class="meta" style="margin-top:3em">Generated 2026-10-12 02:34 UTC · units: mm</p></main></body></html>
