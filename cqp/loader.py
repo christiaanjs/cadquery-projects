@@ -10,6 +10,11 @@ A model file provides its geometry in any of these ways (checked in order):
 
 ``PARAMS = {...}`` at module level documents the parametric inputs.
 Several shown objects are combined into one ``cq.Assembly``.
+
+Parameter overrides (project variants) need ``build()``: the file runs as usual, then its
+geometry and output are discarded and ``build(**{**PARAMS, **overrides})`` is called instead.
+``build`` may call ``show_object`` itself (for named / coloured parts) or return the geometry.
+Only override keys that appear in the model's PARAMS are applied.
 """
 
 from __future__ import annotations
@@ -35,6 +40,7 @@ class Model:
     assembly: cq.Assembly
     params: dict = field(default_factory=dict)
     log: str = ""
+    overrides: dict = field(default_factory=dict)   # the variant overrides applied to params
 
     def compound(self) -> cq.Compound:
         return self.assembly.toCompound()
@@ -127,11 +133,12 @@ def _assemble(shown: list[tuple[object, str | None, dict | None]], fallback: str
     return root
 
 
-def load_model(path: Path, scale: float = 1.0) -> Model:
+def load_model(path: Path, scale: float = 1.0, overrides: dict | None = None) -> Model:
     """Run a model file and return its assembly.
 
     ``scale`` converts model units to mm; it is applied to the geometry so that
     every downstream export (STEP, STL, GLB, drawings) is in millimetres.
+    ``overrides`` replaces PARAMS values (keys the model doesn't have are ignored).
     """
     shown: list[tuple[object, str | None, dict | None]] = []
 
@@ -148,7 +155,20 @@ def load_model(path: Path, scale: float = 1.0) -> Model:
                 str(path), init_globals={"show_object": capture}, run_name="__cqp_model__"
             )
             params = dict(ns.get("PARAMS", {}))
-            if not shown:
+            applied = {k: v for k, v in (overrides or {}).items() if k in params}
+            if applied:
+                if not callable(ns.get("build")):
+                    raise ModelError(
+                        f"{path.name}: parameter overrides {sorted(applied)} need a build() function"
+                    )
+                params.update(applied)
+                shown.clear()
+                buf.seek(0)
+                buf.truncate()
+                value = ns["build"](**params)
+                if value is not None and not shown:
+                    shown.append((value, None, None))
+            elif not shown:
                 value = ns.get("result")
                 if value is None:
                     so = ns.get("show_object")
@@ -177,7 +197,8 @@ def load_model(path: Path, scale: float = 1.0) -> Model:
         raise
     except Exception as e:
         raise ModelError(f"{path.name}: could not assemble result: {e}") from e
-    return Model(name=path.stem, path=path, assembly=assy, params=params, log=buf.getvalue())
+    return Model(name=path.stem, path=path, assembly=assy, params=params, log=buf.getvalue(),
+                 overrides=applied)
 
 
 def _scaled(assy: cq.Assembly, scale: float) -> cq.Assembly:

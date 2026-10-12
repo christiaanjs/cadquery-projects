@@ -9,8 +9,10 @@ See `README.md` for the full model/project format.
 1. `cqp new "Name" --units mm|cm|m|in|ft --tag x` creates `projects/<slug>/` (project.toml, README, starter model).
 2. Edit `projects/<slug>/models/*.py`. Keep dimensions as parameters at the top (`PARAMS` + `build(**PARAMS)`).
 3. `cqp build <slug>` — runs every model, prints bbox / solid count / volume plus anything the model prints,
-   and writes STEP/STL/GLB/SVG to `build/<slug>/`. Exits non-zero on failure.
-4. **Look at it before handing off:** `cqp render <slug> --view iso` (and `--view front|top|side`), then
+   and writes STEP/STL/GLB/SVG to `build/<slug>/` (`build/<slug>/<variant>/` per `[[variants]]` entry
+   in project.toml — named parameter sets, each published as its own page). Exits non-zero on failure.
+4. **Look at it before handing off:** `cqp render <slug> --view iso` (and `--view front|top|side`,
+   `--variant <v>` for a variant's parameters), then
    Read `projects/<slug>/preview*.png`. Check dimensions/labels as well as the shape.
 5. `cqp serve <slug>` for the interactive viewer (user-facing; needs a browser).
 6. Keep `projects/<slug>/README.md` current (status, dimensions, materials, notes) when models change meaningfully.

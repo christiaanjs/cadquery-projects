@@ -122,3 +122,81 @@ def test_repo_projects_build(tmp_path):
     for p in projects:
         r = cqp_build.build_project(p, out_dir=tmp_path / p.slug, formats=("step",), render=False)
         assert r.ok, r.errors
+
+
+VARIANT_MODEL = """
+    import cadquery as cq
+    PARAMS = {"w": 10, "h": 2}
+    def build(w, h):
+        print(f"w={w}")
+        show_object(cq.Workplane().box(w, w, h), name="plate", options={"color": "#336699"})
+    build(**PARAMS)
+"""
+
+
+def test_loader_overrides_rebuild_with_merged_params(tmp_path):
+    p = write(tmp_path, "m.py", VARIANT_MODEL)
+    m = load_model(p, overrides={"w": 30, "other": 1})
+    assert m.params == {"w": 30, "h": 2} and m.overrides == {"w": 30}
+    assert [n for n, _, _ in m.parts()] == ["plate"]          # build()'s show_object kept
+    assert exact_bbox(m.compound()).xlen == pytest.approx(30)
+    assert m.log.strip() == "w=30"                             # default run's output dropped
+
+
+def test_loader_overrides_need_build(tmp_path):
+    p = write(tmp_path, "m.py", "import cadquery as cq\nPARAMS = {'w': 1}\nresult = cq.Workplane().box(1, 1, 1)\n")
+    with pytest.raises(ModelError, match="need a build"):
+        load_model(p, overrides={"w": 2})
+    assert load_model(p, overrides={"unrelated": 2}).params == {"w": 1}
+
+
+def _variant_project(tmp_path, variants_toml):
+    root = tmp_path / "proj"
+    (root / "models").mkdir(parents=True)
+    (root / "models" / "m.py").write_text(textwrap.dedent(VARIANT_MODEL))
+    (root / "project.toml").write_text('title = "V"\n' + textwrap.dedent(variants_toml))
+    return load_project("proj", tmp_path)
+
+
+def test_build_variants(tmp_path):
+    project = _variant_project(tmp_path, """
+        [[variants]]
+        slug = "small"
+        title = "Small"
+        params = { w = 5 }
+        [[variants]]
+        title = "Big One"
+        params = { w = 50 }
+    """)
+    assert [v.slug for v in project.variants] == ["small", "big-one"]
+    out = tmp_path / "out"
+    result = cqp_build.build_project(project, out_dir=out, formats=("glb",))
+    assert result.ok, result.errors
+    manifest = json.loads((out / "manifest.json").read_text())
+    assert manifest["models"] == []
+    assert [v["slug"] for v in manifest["variants"]] == ["small", "big-one"]
+    big = manifest["variants"][1]["models"][0]
+    assert big["params"]["w"] == 50 and big["overrides"] == ["w"]
+    assert (out / "small" / "m.glb").exists() and (out / "big-one" / "m-iso.svg").exists()
+    assert "[big-one] Big One" in cqp_build.info_text(project, result)
+
+
+def test_variant_unknown_param_is_an_error(tmp_path):
+    project = _variant_project(tmp_path, """
+        [[variants]]
+        slug = "typo"
+        params = { width = 5 }
+    """)
+    result = cqp_build.build_project(project, out_dir=tmp_path / "out", formats=(), render=False)
+    assert not result.ok and "width" in result.errors[0]
+
+
+def test_variant_slug_validation(tmp_path):
+    from cqp.project import ProjectError
+
+    project = _variant_project(tmp_path, """
+        [[variants]]
+        slug = "Bad Slug"
+    """)
+    with pytest.raises(ProjectError, match="slug"):
+        _ = project.variants

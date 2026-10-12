@@ -27,7 +27,8 @@ def cmd_build(args):
 
     failed = 0
     for p in _projects(args):
-        r = build_project(p, only=args.model, render=not args.no_render)
+        r = build_project(p, only=args.model, variant=getattr(args, "variant", None),
+                          render=not args.no_render)
         print(info_text(p, r))
         failed += not r.ok
     if failed:
@@ -41,7 +42,7 @@ def cmd_render(args):
     p = load_project(args.slug)
     views = args.view or ["iso"]
     for v in views:
-        path = write_preview_png(p, v, args.model)
+        path = write_preview_png(p, v, args.model, args.variant)
         print(f"wrote {path}")
 
 
@@ -64,6 +65,7 @@ def cmd_check(args):
     args.model = None
     args.no_render = False
     args.slug = None
+    args.variant = None
     return cmd_build(args)
 
 
@@ -82,12 +84,14 @@ def main(argv=None):
     s.add_argument("--all", action="store_true")
     s.add_argument("--model")
     s.add_argument("--no-render", action="store_true")
+    s.add_argument("--variant", help="build only this variant (no manifest is written)")
     s.set_defaults(fn=cmd_build)
 
     s = sub.add_parser("render", help="write preview PNG(s) to projects/<slug>/")
     s.add_argument("slug")
     s.add_argument("--view", action="append", help="iso, front, back, side, left, top, bottom")
     s.add_argument("--model")
+    s.add_argument("--variant", help="apply a variant's parameters (default: PARAMS defaults)")
     s.set_defaults(fn=cmd_render)
 
     s = sub.add_parser("serve", help="live 3D viewer that reloads on save")

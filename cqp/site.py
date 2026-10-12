@@ -50,6 +50,10 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; }
 .sw { display:inline-block; width:10px; height:10px; border-radius:2px; border:1px solid #8884; margin-right:6px; }
 code { background:#8882; padding:1px 4px; border-radius:4px; }
 details summary { cursor:pointer; color:var(--muted); }
+.vnav { margin:10px 0 4px; } .vnav a, .vnav b { display:inline-block; margin:0 6px 6px 0; padding:3px 12px; border:1px solid var(--line); border-radius:99px; background:var(--card); font-size:.85rem; }
+.vnav b { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+td.set, .set code { font-weight:600; color:var(--accent); }
+.overrides { margin:4px 0 0; font-size:.82rem; color:var(--muted); }
 """
 
 PAGE = """<!DOCTYPE html>
@@ -84,9 +88,22 @@ def _readme_html(project: Project) -> str:
 def _params_html(model: dict) -> str:
     if not model.get("params"):
         return ""
-    rows = "".join(f"<tr><td><code>{e(k)}</code></td><td>{e(v)}</td></tr>"
-                   for k, v in model["params"].items())
-    return f"<details><summary>Parameters</summary><table><tr><th>Name</th><th>Default</th></tr>{rows}</table></details>"
+    set_ = set(model.get("overrides", []))
+    rows = "".join(
+        f'<tr><td{cls}><code>{e(k)}</code></td><td{cls}>{e(v)}</td></tr>'
+        for k, v in model["params"].items()
+        for cls in [' class="set"' if k in set_ else ""]
+    )
+    head = "Value (bold = set by this variant)" if set_ else "Default"
+    return (f"<details><summary>Parameters</summary><table><tr><th>Name</th><th>{head}</th></tr>"
+            f"{rows}</table></details>")
+
+
+def _overrides_html(params: dict) -> str:
+    if not params:
+        return '<p class="overrides">Model defaults</p>'
+    items = " · ".join(f"<code>{e(k)} = {e(v)}</code>" for k, v in params.items())
+    return f'<p class="overrides set">{items}</p>'
 
 
 def _parts_html(model: dict) -> str:
@@ -120,10 +137,14 @@ def _bom_html(project: Project) -> str:
             f'<td class="num"><b>{total:.2f}</b></td></tr></table>')
 
 
-def _model_html(project: Project, manifest: dict, model: dict, multi: bool) -> str:
+def _model_html(project: Project, manifest: dict, model: dict, multi: bool,
+                variant: str | None = None) -> str:
+    """Model section. Files sit next to the page; the viewer is at <root>/viewer/."""
     slug = manifest["slug"]
     bg = manifest.get("background") or ""
-    q = f"embed=1&model=../{slug}/{model['files']['glb']}"
+    rel = f"{slug}/{variant}" if variant else slug
+    root = "../../" if variant else "../"
+    q = f"embed=1&model=../{rel}/{model['files']['glb']}"
     if bg:
         q += "&bg=" + bg.replace("#", "%23")
     heading = f"<h2>{e(model['name'])}</h2>" if multi else "<h2>3D model</h2>"
@@ -141,11 +162,52 @@ def _model_html(project: Project, manifest: dict, model: dict, multi: bool) -> s
             f'{model["volume_cm3"]} cm³</p>')
     return (
         f'{heading}{info}<iframe class="viewer" loading="lazy" title="3D viewer: {e(model["name"])}" '
-        f'src="../viewer/index.html?{q}"></iframe>'
+        f'src="{root}viewer/index.html?{q}"></iframe>'
         f'{_params_html(model)}{_parts_html(model)}'
         f'<h3>Drawings</h3><div class="drawings">{drawings}</div>'
         f'<h3>Downloads</h3><div class="dl">{downloads}</div>'
     )
+
+
+def _thumb(models: list[dict]) -> str:
+    if not models:
+        return ""
+    first = models[0]
+    return next((d["file"] for d in first.get("drawings", []) if d["view"] == "iso"),
+                first["drawings"][0]["file"] if first.get("drawings") else "")
+
+
+def _variants_html(manifest: dict) -> str:
+    cards = "".join(
+        f'<a class="card" href="{e(v["slug"])}/">'
+        f'<img loading="lazy" src="{e(v["slug"])}/{e(_thumb(v["models"]))}" alt="">'
+        f'<div><strong>{e(v["title"])}</strong>'
+        + (f'<span class="muted">{e(v["description"])}</span>' if v.get("description") else "")
+        + f'{_overrides_html(v["params"])}</div></a>'
+        for v in manifest["variants"]
+    )
+    return f'<h2>Variants</h2><div class="grid">{cards}</div>'
+
+
+def _variant_page(project: Project, manifest: dict, v: dict, generated: str) -> str:
+    models = v["models"]
+    multi = len(models) > 1
+    nav = "".join(
+        f"<b>{e(o['title'])}</b>" if o["slug"] == v["slug"]
+        else f'<a href="../{e(o["slug"])}/">{e(o["title"])}</a>'
+        for o in manifest["variants"]
+    )
+    desc = f"<p>{e(v['description'])}</p>" if v.get("description") else ""
+    body = (
+        f'<p class="meta"><a href="../../">← All projects</a> · '
+        f'<a href="../">{e(manifest["title"])}</a></p>'
+        f'<h1>{e(manifest["title"])} — {e(v["title"])}</h1>'
+        f'<div class="vnav">{nav}</div>{desc}{_overrides_html(v["params"])}'
+        + "".join(_model_html(project, manifest, m, multi, v["slug"]) for m in models)
+        + f'<p class="meta" style="margin-top:3em">Generated {generated} · units: {e(manifest["units"])}</p>'
+    )
+    return PAGE.format(title=f'{e(manifest["title"])} — {e(v["title"])} — {SITE_TITLE}',
+                       css=CSS, body=body)
 
 
 def _project_page(project: Project, manifest: dict, generated: str) -> str:
@@ -156,6 +218,7 @@ def _project_page(project: Project, manifest: dict, generated: str) -> str:
     body = (
         f'<p class="meta"><a href="../">← All projects</a></p><h1>{e(manifest["title"])}</h1>'
         f'<div>{tags}</div>{desc}'
+        + (_variants_html(manifest) if manifest.get("variants") else "")
         + "".join(_model_html(project, manifest, m, multi) for m in models)
         + _bom_html(project) + _readme_html(project)
         + f'<p class="meta" style="margin-top:3em">Generated {generated} · units: {e(manifest["units"])}</p>'
@@ -183,6 +246,15 @@ const on=new Set();document.querySelectorAll('[data-tag]').forEach(t=>t.onclick=
     return PAGE.format(title=SITE_TITLE, css=CSS, body=body)
 
 
+def _copy_outputs(src: Path, dst: Path, models: list[dict]) -> None:
+    """Copy the files a manifest lists (exports + drawings) from build/ into the site."""
+    dst.mkdir(parents=True, exist_ok=True)
+    for m in models:
+        names = list(m.get("files", {}).values()) + [d["file"] for d in m.get("drawings", [])]
+        for name in names:
+            shutil.copy2(src / name, dst / name)
+
+
 def build_site(out_dir: Path, only: str | None = None, rebuild: bool = False) -> list[dict]:
     projects = all_projects()
     if only:
@@ -203,17 +275,23 @@ def build_site(out_dir: Path, only: str | None = None, rebuild: bool = False) ->
         manifest = _ensure_built(project, rebuild)
         dst = out_dir / project.slug
         dst.mkdir()
-        for f in project.build_dir.iterdir():
-            if f.suffix in {".svg", ".glb", ".step", ".stl"}:
-                shutil.copy2(f, dst / f.name)
+        variants = manifest.get("variants") or []
+        if variants:
+            for v in variants:
+                _copy_outputs(project.build_dir / v["slug"], dst / v["slug"], v["models"])
+                (dst / v["slug"] / "index.html").write_text(
+                    _variant_page(project, manifest, v, generated), encoding="utf-8")
+            thumb = f'{variants[0]["slug"]}/{_thumb(variants[0]["models"])}'
+            names = sorted({m["name"] for v in variants for m in v["models"]})
+        else:
+            _copy_outputs(project.build_dir, dst, manifest["models"])
+            thumb = _thumb(manifest["models"])
+            names = [m["name"] for m in manifest["models"]]
         (dst / "index.html").write_text(_project_page(project, manifest, generated), encoding="utf-8")
-        first = manifest["models"][0]
-        thumb = next((d["file"] for d in first.get("drawings", []) if d["view"] == "iso"),
-                     first["drawings"][0]["file"] if first.get("drawings") else "")
         entries.append({
             "slug": project.slug, "title": project.title, "description": project.description,
-            "tags": project.tags, "thumb": thumb,
-            "models": [m["name"] for m in manifest["models"]],
+            "tags": project.tags, "thumb": thumb, "models": names,
+            "variants": [v["slug"] for v in variants],
         })
     (out_dir / "index.html").write_text(_index_page(entries, generated), encoding="utf-8")
     (out_dir / "projects.json").write_text(json.dumps(entries, indent=2), encoding="utf-8")

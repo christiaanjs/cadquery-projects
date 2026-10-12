@@ -82,7 +82,23 @@ exploded = false                            # skip the exploded view for assembl
 item = "M5 x 12 screw"
 qty = 4
 price = 0.25
+
+[[variants]]                                # optional: publish several parameter sets
+slug = "wide"                               # URL segment: <project>/wide/
+title = "Wide version"
+description = "Shown on the variant's card and page."
+params = { width = 60 }                     # overrides for every model whose PARAMS has the key
 ```
+
+### Variants
+
+With `[[variants]]`, every model is built once per variant into `build/<slug>/<variant>/`. The
+project page shows a card per variant, and each variant gets its own page with viewer, drawings
+and downloads. Overrides need a `build()` function: the file runs as usual, then the loader calls
+`build(**{**PARAMS, **overrides})` and keeps only that geometry and output. `build()` may call
+`show_object` itself for named or coloured parts. A key that no model has in `PARAMS` fails the
+build, so typos are caught. `cqp build <slug> --variant <v>` and `cqp render <slug> --variant <v>`
+work on one variant; `cqp render` and `cqp serve` otherwise use the `PARAMS` defaults.
 
 ## Publishing
 

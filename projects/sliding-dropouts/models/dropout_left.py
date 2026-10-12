@@ -31,7 +31,7 @@ def build(**p):
             print(f"left:   {name} at X {x:+.2f} Z {z:+.2f} (world)")
         print(f"left: rotor inner face |Y| {bg['rotor_face']:.2f}, mount lateral |Y| "
               f"{bg['lateral']:.2f}")
-    return c.to_world(body, lay, "left")
+    show_object(c.to_world(body, lay, "left"), name="dropout_left", options={"color": "#5b6770"})
 
 
-show_object(build(**PARAMS), name="dropout_left", options={"color": "#5b6770"})
+build(**PARAMS)

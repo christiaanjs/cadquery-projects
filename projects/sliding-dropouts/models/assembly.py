@@ -55,29 +55,33 @@ def rotor_ref(p, lay, bg):
             .circle(p["rotor"] / 2).circle(17).extrude(c.ROTOR_THICKNESS))
 
 
-right, rinfo = c.build_right(PARAMS)
-left, linfo = c.build_left(PARAMS)
-lay = rinfo["lay"]
-c.describe(PARAMS, "right", rinfo)
-c.describe(PARAMS, "left", linfo)
+def build(**p):
+    right, rinfo = c.build_right(p)
+    left, linfo = c.build_left(p)
+    lay = rinfo["lay"]
+    c.describe(p, "right", rinfo)
+    c.describe(p, "left", linfo)
 
-parts = {
-    "dropout_right": c.to_world(right, lay, "right"),
-    "dropout_left": c.to_world(left, lay, "left"),
-    "frame_plate_right": frame_plate(PARAMS, lay, "right"),
-    "frame_plate_left": frame_plate(PARAMS, lay, "left"),
-}
-for side in ("right", "left"):
-    clash = parts[f"dropout_{side}"].intersect(parts[f"frame_plate_{side}"])
-    vol = sum(v.Volume() for v in clash.solids().vals())
-    print(f"{side}: insert / frame plate overlap {vol:.2f} mm^3 "
-          f"({'OK' if vol < 1 else 'CLASH'}; the key is meant to sit inside the slot)")
+    parts = {
+        "dropout_right": c.to_world(right, lay, "right"),
+        "dropout_left": c.to_world(left, lay, "left"),
+        "frame_plate_right": frame_plate(p, lay, "right"),
+        "frame_plate_left": frame_plate(p, lay, "left"),
+    }
+    for side in ("right", "left"):
+        clash = parts[f"dropout_{side}"].intersect(parts[f"frame_plate_{side}"])
+        vol = sum(v.Volume() for v in clash.solids().vals())
+        print(f"{side}: insert / frame plate overlap {vol:.2f} mm^3 "
+              f"({'OK' if vol < 1 else 'CLASH'}; the key is meant to sit inside the slot)")
 
-for name, obj in parts.items():
-    show_object(obj, name=name, options=GHOST if name.startswith("frame") else
-                {"color": "#5b6770"})
-show_object(axle_ref(PARAMS, lay), name="thru_axle", options={"color": "#222222", "alpha": 0.6})
-show_object(hub_ref(PARAMS, lay), name="hub", options={"color": "#c8b07a", "alpha": 0.3})
-if linfo["brake"]:
-    show_object(rotor_ref(PARAMS, lay, linfo["brake"]), name="rotor",
-                options={"color": "#b0b0b0", "alpha": 0.3})
+    for name, obj in parts.items():
+        show_object(obj, name=name, options=GHOST if name.startswith("frame") else
+                    {"color": "#5b6770"})
+    show_object(axle_ref(p, lay), name="thru_axle", options={"color": "#222222", "alpha": 0.6})
+    show_object(hub_ref(p, lay), name="hub", options={"color": "#c8b07a", "alpha": 0.3})
+    if linfo["brake"]:
+        show_object(rotor_ref(p, lay, linfo["brake"]), name="rotor",
+                    options={"color": "#b0b0b0", "alpha": 0.3})
+
+
+build(**PARAMS)

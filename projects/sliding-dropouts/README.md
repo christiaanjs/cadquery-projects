@@ -23,6 +23,18 @@ Shared parameters are `PARAMS` in `models/_common.py`; side-specific ones are `R
 `LEFT_PARAMS` and `FRAME_PLATE` there too. `dropout_left.py` / `dropout_right.py` merge them into
 their own `PARAMS`, and `assembly.py` uses all of them, so edit `_common.py` to change both sides together.
 
+## Variants
+The site publishes two variants (set in `project.toml` under `[[variants]]`), each with its own
+page, drawings and downloads:
+
+| variant | brake | axle offset (x / y) | hub |
+|---|---|---|---|
+| `tange-post` | post mount | 0 / 0 (Tange proportions) | 142 (frame 142) |
+| `flat-offset-148` | flat mount | 32 / 32 (back and up) | 148 (frame 142, `hub_width_offset` = 6) |
+
+`cqp build sliding-dropouts` builds both. `cqp render sliding-dropouts --variant tange-post` previews
+one; without `--variant` the `PARAMS` defaults below are used.
+
 ## Construction
 Modelled on the Tange sliding inserts in the pictures here (`tange-*.jpg/png`). The default
 proportions are measured off those pictures, scaled from each axle hole: a flat plate running from

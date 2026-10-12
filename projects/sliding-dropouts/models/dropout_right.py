@@ -18,7 +18,7 @@ def build(**p):
     ok = "OK" if info["stop_area"] >= 10 else "TOO SMALL"
     print(f"right: forward rotational stop face area {info['stop_area']:.1f} mm^2 "
           f"(>= 10 required) {ok}")
-    return c.to_world(body, lay, "right")
+    show_object(c.to_world(body, lay, "right"), name="dropout_right", options={"color": "#5b6770"})
 
 
-show_object(build(**PARAMS), name="dropout_right", options={"color": "#5b6770"})
+build(**PARAMS)
