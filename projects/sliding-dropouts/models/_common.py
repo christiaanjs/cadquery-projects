@@ -42,8 +42,8 @@ import udh_frame_spec as udh  # noqa: E402
 PARAMS = {
     "frame_old": 142,             # hub OLD the frame's dropout seats were built for (142/148/157)
     "hub_width_offset": 0.0,      # extra hub OLD to adapt to, total (e.g. 6 for a 142 frame -> 148 hub)
-    "axle_offset_x": 0.0,         # axle offset from the frame's nominal position; + = rearward (longer stays)
-    "axle_offset_y": 0.0,         # + = axle up
+    "axle_offset_x": 32.0,        # axle offset from the frame's nominal position; + = rearward (longer stays)
+    "axle_offset_y": 32.0,        # + = axle up
     "plate_thickness": 9.0,       # insert plate thickness at hub_width_offset = 0
     "min_plate_thickness": 4.0,   # refuse to build thinner plates
     "tongue_length": 56.0,        # nominal axle -> front end of the insert
@@ -106,19 +106,68 @@ def layout(p: dict) -> Layout:
                   0.0 - p["axle_offset_x"], p["axle_offset_y"])
 
 
-def _circle_hull(circles) -> cq.Sketch:
-    # cq's hull fails on circles nested inside another; they don't change the hull anyway.
-    def inside(i):
-        (x, y), r = circles[i]
-        return any(
-            j != i and math.hypot(x - cx, y - cy) + r <= cr + 1e-3 and (r < cr or j < i)
-            for j, ((cx, cy), cr) in enumerate(circles)
-        )
+def _circle_hull(circles, n: int = 720) -> cq.Wire:
+    """Convex hull of circles as a closed wire: exact arcs joined by tangent lines.
 
-    s = cq.Sketch()
-    for (x, y), r in (c for i, c in enumerate(circles) if not inside(i)):
-        s = s.arc((x, y), r, 0.0, 360.0)
-    return s.hull()
+    cq.Sketch.hull() fails on some layouts (e.g. post/IS webs with a large axle offset), so
+    hull points sampled on each circle, then rebuild every run of points from one circle as an
+    arc of that exact circle. Exact arcs matter: the boss cylinder is unioned on top and
+    near-coincident faces break later booleans.
+    """
+    pts = []
+    for i, ((x, y), r) in enumerate(circles):
+        for k in range(n):
+            a = 2 * math.pi * k / n
+            pts.append((x + r * math.cos(a), y + r * math.sin(a), i, k))
+    pts.sort()
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    def chain(seq):
+        out = []
+        for q in seq:
+            while len(out) >= 2 and cross(out[-2], out[-1], q) <= 1e-12:
+                out.pop()
+            out.append(q)
+        return out
+
+    hull = chain(pts)[:-1] + chain(reversed(pts))[:-1]   # counter-clockwise
+    if len({q[2] for q in hull}) == 1:                   # one circle contains the rest
+        (x, y), r = circles[hull[0][2]]
+        return cq.Wire.makeCircle(r, cq.Vector(x, y, 0), cq.Vector(0, 0, 1))
+    # Start at a change of circle so no run wraps around the end of the list.
+    start = next(j for j in range(len(hull)) if hull[j][2] != hull[j - 1][2])
+    hull = hull[start:] + hull[:start]
+    runs = []
+    for q in hull:
+        if runs and runs[-1][0][2] == q[2]:
+            runs[-1].append(q)
+        else:
+            runs.append([q])
+
+    # Each run -> an exact arc (or a single point when it is too short to matter).
+    pieces = []
+    for run in runs:
+        (x, y), r = circles[run[0][2]]
+        if len(run) >= 3:
+            a0 = 360.0 * run[0][3] / n
+            a1 = 360.0 * run[-1][3] / n
+            if a1 <= a0:
+                a1 += 360.0
+            arc = cq.Edge.makeCircle(r, cq.Vector(x, y, 0), cq.Vector(0, 0, 1), a0, a1)
+            pieces.append((arc, arc.startPoint(), arc.endPoint()))
+        else:
+            v = cq.Vector(run[0][0], run[0][1], 0)
+            pieces.append((None, v, v))
+    edges = []
+    for j, (arc, _, end) in enumerate(pieces):
+        if arc is not None:
+            edges.append(arc)
+        nxt = pieces[(j + 1) % len(pieces)][1]
+        if (nxt - end).Length > 1e-9:
+            edges.append(cq.Edge.makeLine(end, nxt))
+    return cq.Wire.assembleEdges(edges)
 
 
 def outline_circles(p: dict, lay: Layout):
@@ -136,8 +185,9 @@ def outline_circles(p: dict, lay: Layout):
 
 def plate(p: dict, lay: Layout, extra_circles=(), depth=None) -> cq.Workplane:
     """Hull outline extruded from the inboard face (local z=0) outboard."""
-    sk = _circle_hull(list(outline_circles(p, lay)) + list(extra_circles))
-    return cq.Workplane("XY").placeSketch(sk).extrude(depth if depth is not None else lay.t)
+    face = cq.Face.makeFromWires(_circle_hull(list(outline_circles(p, lay)) + list(extra_circles)))
+    h = depth if depth is not None else lay.t
+    return cq.Workplane("XY").add(cq.Solid.extrudeLinear(face, cq.Vector(0, 0, h)))
 
 
 def cylinder(x, y, r, z0, z1) -> cq.Workplane:

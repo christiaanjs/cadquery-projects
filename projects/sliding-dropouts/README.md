@@ -34,6 +34,11 @@ key; an M4 adjuster screw is tapped into the tongue's front end. The frame plate
 the axle boss over the slide travel, so the boss can be as thick as the interface needs. The
 `assembly` build reports any overlap between each insert and its frame plate.
 
+The key, bolt and tongue defaults reproduce the Tange layout around the axle's nominal position.
+The axle offsets then move the axle 32 mm back and 32 mm up from there by default, so the plate
+reaches further back and up to the boss than on the Tange parts. Set both offsets to 0 for the
+Tange proportions.
+
 Coordinates: origin = the frame's nominal axle centre, X forward, Z up, +Y = left. The `front` view
 looks at the drive side; `back` at the brake side.
 
@@ -42,8 +47,8 @@ looks at the drive side; `back` at the brake side.
 |---|---|---|
 | `frame_old` | 142 | hub OLD the frame's insert seats were built for |
 | `hub_width_offset` | 0 | extra hub OLD (total). e.g. 6 runs a 148 hub in a 142 frame; each insert plate gets 3 mm thinner |
-| `axle_offset_x` | 0 | + moves the axle rearward (longer chainstays) |
-| `axle_offset_y` | 0 | + moves the axle up |
+| `axle_offset_x` | 32 | + moves the axle rearward (longer chainstays), measured from the Tange-proportioned position |
+| `axle_offset_y` | 32 | + moves the axle up |
 | `bolt_x` / `bolt_z` / `bolt_pitch` | 24 / 26 / 18 | first clamp bolt position ahead of / above the nominal axle, and bolt spacing |
 | `key_length` / `key_width` / `key_height` | 31 / 10 / 3 | raised key that rides in the frame slot (keep `key_height` below the frame plate thickness) |
 | `tongue_length` / `tongue_height` | 56 / 24 | plate extent ahead of the axle, and height around the key line |
