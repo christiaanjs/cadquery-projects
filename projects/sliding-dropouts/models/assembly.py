@@ -13,17 +13,16 @@ GHOST = {"color": "#9aa5ad", "alpha": 0.35}
 
 
 def frame_plate(p, lay, side):
-    """The frame's slotted socket plate (fixed), outboard of the insert."""
+    """The frame's socket plate (fixed), outboard of the insert; the insert key rides in its slot."""
     x0, x1 = p["frame_edge_x"], p["frame_plate_front"]
     h = p["tongue_height"] / 2 + p["frame_plate_margin"]
     t = p["frame_plate_thickness"]
     plate = cq.Workplane("XY").center((x0 + x1) / 2, 0).rect(x1 - x0, 2 * h).extrude(t)
     plate = plate.edges("|Z").fillet(4)
-    for i in range(2):
-        x = p["bolt_x"] + i * p["bolt_pitch"]
-        slot = (cq.Workplane("XY").workplane(offset=-1).center(x, 0)
-                .slot2D(p["slot_travel"] + p["slot_width"], p["slot_width"]).extrude(t + 2))
-        plate = plate.cut(slot)
+    slot = (cq.Workplane("XY").workplane(offset=-1)
+            .center(p["bolt_x"] + p["bolt_pitch"] / 2, 0)
+            .slot2D(c.key_length(p) + p["slot_travel"], p["key_width"] + 0.2).extrude(t + 2))
+    plate = plate.cut(slot)
     w = plate.rotate((0, 0, 0), (1, 0, 0), 90).translate((0, -lay.seat_y, 0))
     return w.mirror("XZ") if side == "left" else w
 

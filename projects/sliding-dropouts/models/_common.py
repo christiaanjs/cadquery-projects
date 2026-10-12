@@ -44,12 +44,14 @@ PARAMS = {
     "axle_offset_y": 0.0,         # + = axle up
     "plate_thickness": 9.0,       # insert plate thickness at hub_width_offset = 0
     "min_plate_thickness": 4.0,   # refuse to build thinner plates
-    "tongue_length": 72.0,        # nominal axle -> front end of the insert
+    "tongue_length": 86.0,        # nominal axle -> front end of the insert
     "tongue_height": 26.0,
     "corner_radius": 5.0,
     "boss_radius": 19.0,          # outer profile around the axle (UDH: R14.5-19)
-    "bolt_x": 32.0,               # first clamp bolt, forward of nominal axle
-    "bolt_pitch": 22.0,
+    "bolt_x": 48.0,               # first clamp bolt, forward of nominal axle
+    "bolt_pitch": 20.0,
+    "key_width": 13.0,            # raised key around the bolts; rides in the frame slot
+    "key_height": 3.0,            # key protrudes outboard into the slot (< frame plate thickness)
     "bolt_tap_dia": 5.0,          # M6x1 tap drill
     "adjuster_tap_dia": 3.3,      # M4x0.7 tap drill, along X into the front end
     "adjuster_depth": 10.0,
@@ -58,10 +60,9 @@ PARAMS = {
 FRAME_PLATE = {
     "frame_plate_thickness": 6.0,
     "frame_edge_x": 30.0,         # frame plate rear edge, forward of nominal axle
-    "frame_plate_front": 95.0,
+    "frame_plate_front": 104.0,
     "frame_plate_margin": 7.0,    # plate beyond the insert tongue, top and bottom
-    "slot_travel": 16.0,          # slot length minus bolt dia (adjustment range)
-    "slot_width": 6.4,
+    "slot_travel": 12.0,          # slot length minus key length (adjustment range)
 }
 
 UDH_BORE = udh.DROPOUT["hanger_bore_dia"]                   # 20 +0.1/0
@@ -139,8 +140,22 @@ def cylinder(x, y, r, z0, z1) -> cq.Workplane:
     return cq.Workplane("XY").workplane(offset=z0).center(x, y).circle(r).extrude(z1 - z0)
 
 
+def key_length(p: dict) -> float:
+    return p["bolt_pitch"] + p["key_width"]
+
+
 def tongue_holes(body: cq.Workplane, p: dict, lay: Layout) -> cq.Workplane:
-    """Tapped clamp-bolt holes (through) and the front adjuster hole."""
+    """Raised slot key, tapped clamp-bolt holes (through) and the front adjuster hole.
+
+    The key (as on Tange's inserts) sits in the frame plate's slot and locates the insert
+    while it slides; an outer clamp plate bears on the frame around the slot.
+    """
+    key = (
+        cq.Workplane("XY").workplane(offset=lay.t - 0.01)
+        .center(p["bolt_x"] + p["bolt_pitch"] / 2, 0)
+        .slot2D(key_length(p), p["key_width"]).extrude(p["key_height"] + 0.01)
+    )
+    body = body.union(key)
     for i in range(2):
         x = p["bolt_x"] + i * p["bolt_pitch"]
         body = body.cut(cylinder(x, 0, p["bolt_tap_dia"] / 2, -50, 50))

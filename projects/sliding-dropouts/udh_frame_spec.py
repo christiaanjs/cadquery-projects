@@ -26,7 +26,6 @@ NOTES
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 DRAWING_NUMBER = "90-7518-190-000"
 DRAWING_REV = "H.14"
@@ -39,18 +38,18 @@ DRAWING_REV = "H.14"
 @dataclass(frozen=True)
 class Dim:
     name: str
-    nominal: Optional[float]
+    nominal: float | None
     kind: str = "pm"                 # pm | min | max | range | ref | basic | info
     plus: float = 0.0                # tolerance magnitudes (kind == "pm")
     minus: float = 0.0
-    hi: Optional[float] = None       # kind == "range"
+    hi: float | None = None       # kind == "range"
     unit: str = "mm"                 # "mm", "deg", "mm2"
     sheet: int = 0
     confidence: str = "high"
     note: str = ""
 
     @property
-    def lo_limit(self) -> Optional[float]:
+    def lo_limit(self) -> float | None:
         if self.kind == "pm":
             return self.nominal - self.minus
         if self.kind in ("min", "range"):
@@ -58,7 +57,7 @@ class Dim:
         return None
 
     @property
-    def hi_limit(self) -> Optional[float]:
+    def hi_limit(self) -> float | None:
         if self.kind == "pm":
             return self.nominal + self.plus
         if self.kind == "max":
@@ -311,8 +310,8 @@ CABLE_SPEC = {
 
 
 def check_cable_routing(total_bend_deg: float, min_radius_mm: float,
-                        exit_location: Optional[str] = None,
-                        exit_distance_mm: Optional[float] = None) -> list[str]:
+                        exit_location: str | None = None,
+                        exit_distance_mm: float | None = None) -> list[str]:
     """Return a list of problems (empty list = routing meets the drawing's limits)."""
     problems = []
     if total_bend_deg > CABLE_SPEC["max_total_bend_deg"]:

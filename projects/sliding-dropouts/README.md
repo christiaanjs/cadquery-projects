@@ -24,8 +24,10 @@ Shared parameters are `PARAMS` in `models/_common.py`; side-specific ones are `R
 their own `PARAMS`, and `assembly.py` uses all of them, so edit `_common.py` to change both sides together.
 
 ## Construction
-Each insert sits on the **inboard** face of the frame's slotted socket plate. Two M6 bolts go
-outboard → inboard through the frame slots into tapped holes in the insert's tongue; an M4 adjuster
+Modelled on the Tange sliding inserts in the pictures here (`tange-*.jpg/png`): a flat plate with a
+raised stadium **key** around two clamp bolts. Each insert sits on the **inboard** face of the
+frame's socket plate with its key riding in the frame slot (`slot_travel` of adjustment). Two M6
+bolts go through an outer clamp plate and the slot into tapped holes in the key; an M4 adjuster
 screw is tapped into the tongue's front end. The frame plate stops ahead of the axle boss
 (`frame_edge_x`), so the boss can be as thick as the interface needs. `cqp build` prints the
 minimum frame plate rear edge for the current axle offset.
@@ -40,6 +42,7 @@ looks at the drive side; `back` at the brake side.
 | `hub_width_offset` | 0 | extra hub OLD (total). e.g. 6 runs a 148 hub in a 142 frame; each insert plate gets 3 mm thinner |
 | `axle_offset_x` | 0 | + moves the axle rearward (longer chainstays) |
 | `axle_offset_y` | 0 | + moves the axle up |
+| `key_width` / `key_height` | 13 / 3 | raised key that rides in the frame slot (keep `key_height` below the frame plate thickness) |
 | `plate_thickness` | 9 | insert plate thickness at zero hub offset (min `min_plate_thickness` = 4) |
 | `brake_mount` | flat | `flat`, `post`, `is` or `none` |
 | `rotor` | 160 | rotor diameter the mount is positioned for |

@@ -97,7 +97,6 @@ from __future__ import annotations
 import argparse
 import math
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
 
 __all__ = [
     "MountSpec",
@@ -155,9 +154,9 @@ class MountSpec:
     spacing: float
     nominal_spacing: float
     bolt: str
-    thread_engagement: Optional[Tuple[float, float]]
+    thread_engagement: tuple[float, float] | None
     threaded_in_frame: bool
-    native_rotors: Tuple[int, ...]
+    native_rotors: tuple[int, ...]
     notes: str = ""
 
 
@@ -174,7 +173,7 @@ class MountPosition:
 
 
 # Constants from Verdone [V1] (formulas) and [V2] (drawings).
-MOUNTS: Dict[str, MountSpec] = {
+MOUNTS: dict[str, MountSpec] = {
     "flat": MountSpec(
         key="flat",
         name="Flat mount (rear)",
@@ -242,7 +241,7 @@ _ALIASES = {
 #: Shimano rear post mount dimensions [S1], mm, keyed by rotor diameter.
 #: ``A`` = mounting-face dimension (~ ``top``), ``B`` = bolt spacing,
 #: ``C`` = first-bolt dimension (~ ``bolt1``). Tolerance +/-0.1 mm.
-SHIMANO_POST_REAR: Dict[int, Dict[str, float]] = {
+SHIMANO_POST_REAR: dict[int, dict[str, float]] = {
     140: {"A": 47.5, "B": 74.2, "C": 1.7},
     160: {"A": 55.9, "B": 74.2, "C": 6.8},
     180: {"A": 64.0, "B": 74.2, "C": 12.4},
@@ -251,12 +250,12 @@ SHIMANO_POST_REAR: Dict[int, Dict[str, float]] = {
 
 #: SRAM published rear flat mount "Dimension B" [R1], mm (axle centreline to
 #: bottom-slot centreline). Corresponds to ``bolt1`` for flat mount.
-SRAM_FLAT_REAR_DIM_B: Dict[int, float] = {140: 36.5, 160: 45.0}
+SRAM_FLAT_REAR_DIM_B: dict[int, float] = {140: 36.5, 160: 45.0}
 
 #: Rotor inner face distance from wheel centre, by hub spacing (mm) [V1].
 #: NOTE: [V1] lists 53.25 for 142 mm in its list but 52.25 in its equation
 #: text. 53.25 is used here; verify before relying on it.
-ROTOR_FACE_FROM_CENTER: Dict[int, float] = {
+ROTOR_FACE_FROM_CENTER: dict[int, float] = {
     148: 55.25,
     142: 53.25,
     110: 44.50,
@@ -265,7 +264,7 @@ ROTOR_FACE_FROM_CENTER: Dict[int, float] = {
 
 #: Caliper screw / mounting face distance from the inner rotor face (mm)
 #: [V1]. Assumes Centerlock hubs and 1.75 mm rotors.
-SCREWS_FROM_INNER_ROTOR_FACE: Dict[str, float] = {
+SCREWS_FROM_INNER_ROTOR_FACE: dict[str, float] = {
     "post": 9.55,
     "flat": 12.20,
     "is": 15.25,  # IS2000 face, rear (front is 10.50)
@@ -351,14 +350,14 @@ def rotor_face_from_center(hub_spacing_mm: int) -> float:
         ) from None
 
 
-def compare_post_mount_to_shimano() -> Dict[int, Dict[str, float]]:
+def compare_post_mount_to_shimano() -> dict[int, dict[str, float]]:
     """Difference (model - Shimano) for rear post mount, per rotor size.
 
     Returns a dict ``{rotor: {"d_top": .., "d_bolt1": .., "d_spacing": ..}}``
     in mm. Demonstrates that the idealised linear model departs from
     Shimano's published numbers at 180/203 mm [S1][V1].
     """
-    out: Dict[int, Dict[str, float]] = {}
+    out: dict[int, dict[str, float]] = {}
     for rotor, s in SHIMANO_POST_REAR.items():
         p = mount_position("post", rotor)
         out[rotor] = {
@@ -374,7 +373,7 @@ def compare_post_mount_to_shimano() -> Dict[int, Dict[str, float]]:
 # --------------------------------------------------------------------------
 
 #: (top, bolt1) per rotor from the drawing tables in [V2].
-_VERDONE_DRAWING: Dict[str, Dict[int, Tuple[float, float]]] = {
+_VERDONE_DRAWING: dict[str, dict[int, tuple[float, float]]] = {
     "flat": {
         120: (10.92, 27.88), 140: (16.00, 36.50), 160: (21.08, 45.12),
         180: (26.15, 53.73), 200: (31.23, 62.35), 203: (31.99, 63.64),
