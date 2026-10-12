@@ -44,8 +44,12 @@ PARAMS = {
     "hub_width_offset": 0.0,      # extra hub OLD to adapt to, total (e.g. 6 for a 142 frame -> 148 hub)
     "axle_offset_x": 32.0,        # axle offset from the frame's nominal position; + = rearward (longer stays)
     "axle_offset_y": 32.0,        # + = axle up
-    "plate_thickness": 9.0,       # insert plate thickness at hub_width_offset = 0
-    "min_plate_thickness": 4.0,   # refuse to build thinner plates
+    "plate_thickness": 9.0,       # insert plate thickness
+    "min_plate_thickness": 4.0,   # refuse to build thinner plates (hub_offset_mode "thin")
+    "hub_offset_mode": "bend",    # "bend": full-thickness plate, axle region joggled outboard by
+                                  #   hub_width_offset / 2; "thin": whole plate thinner instead
+    "bend_start": 30.0,           # bend starts this far from the key centre towards the axle
+    "bend_length": 8.0,           # length of the sloped transition
     "tongue_length": 56.0,        # nominal axle -> front end of the insert
     "tongue_height": 24.0,        # tongue (key region) height, centred on bolt_z
     "corner_radius": 5.0,
@@ -59,6 +63,15 @@ PARAMS = {
     "bolt_tap_dia": 4.2,          # M5x0.8 tap drill
     "adjuster_tap_dia": 3.3,      # M4x0.7 tap drill, along X into the front end
     "adjuster_depth": 10.0,
+    # Reliefs: concave cut-outs in the outline between features (max depth in mm, 0 = off).
+    # Each is reduced automatically to keep relief_margin from the boss, key, brake bosses etc.
+    "relief_brake_posts": 10.0,   # between the two brake bosses
+    "relief_brake_axle": 10.0,    # between the brake mount and the axle boss
+    "relief_axle_slider": 8.0,    # between the axle boss and the slider (key) region
+    "relief_slider_brake": 0.0,   # between the slider region and the brake mount
+    "relief_margin": 4.0,         # material kept around protected features
+    "relief_round": 3.0,          # fillet where a relief meets the straight edge
+    "relief_min_chord": 15.0,     # skip reliefs shorter than this (they read as notches)
 }
 
 FRAME_PLATE = {
@@ -91,23 +104,43 @@ class Layout:
     seat_y: float        # |world Y| of the frame plate's inboard face (= insert outboard face)
     ax: float            # axle centre, local x
     ay: float            # axle centre, local y (world Z)
+    zs: float = 0.0      # local z shift of the slider (key) region; non-zero when bent
+    kx: float = 0.0      # key centre, local x / y
+    ky: float = 0.0
 
 
 def layout(p: dict) -> Layout:
-    hub_old = p["frame_old"] + p["hub_width_offset"]
-    t = p["plate_thickness"] - p["hub_width_offset"] / 2
-    if t < p["min_plate_thickness"]:
-        raise ValueError(
-            f"hub_width_offset {p['hub_width_offset']} leaves a {t:.1f} mm insert plate "
-            f"(< {p['min_plate_thickness']}); increase plate_thickness"
-        )
+    """Insert placement. Local z = 0 is the hub's inboard face, (OLD + 7) / 2 from centre.
+
+    The frame's plate seat is fixed by frame_old. A hub_width_offset moves the hub faces out
+    by offset / 2 per side; "bend" keeps the plate thickness and joggles the slider region
+    back inboard onto the seat (zs = -offset / 2), "thin" thins the whole plate instead.
+    """
+    off = p["hub_width_offset"]
+    hub_old = p["frame_old"] + off
+    t, zs = p["plate_thickness"], 0.0
+    if p["hub_offset_mode"] == "thin":
+        t -= off / 2
+        if t < p["min_plate_thickness"]:
+            raise ValueError(
+                f"hub_width_offset {off} leaves a {t:.1f} mm insert plate "
+                f"(< {p['min_plate_thickness']}); increase plate_thickness or use 'bend'"
+            )
+    elif p["hub_offset_mode"] == "bend":
+        zs = -off / 2
+    else:
+        raise ValueError(f"hub_offset_mode must be 'bend' or 'thin', not {p['hub_offset_mode']!r}")
     y_in = frame_span(hub_old) / 2
     return Layout(hub_old, y_in, t, frame_span(p["frame_old"]) / 2 + p["plate_thickness"],
-                  0.0 - p["axle_offset_x"], p["axle_offset_y"])
+                  0.0 - p["axle_offset_x"], p["axle_offset_y"], zs,
+                  p["bolt_x"] + p["bolt_pitch"] / 2, p["bolt_z"])
 
 
-def _circle_hull(circles, n: int = 720) -> cq.Wire:
+def _circle_hull(circles, n: int = 720):
     """Convex hull of circles as a closed wire: exact arcs joined by tangent lines.
+
+    Returns (wire, lines) with lines = [(i, j, start, end)]: each straight hull edge, running
+    counter-clockwise from circle i to circle j.
 
     cq.Sketch.hull() fails on some layouts (e.g. post/IS webs with a large axle offset), so
     hull points sampled on each circle, then rebuild every run of points from one circle as an
@@ -135,7 +168,7 @@ def _circle_hull(circles, n: int = 720) -> cq.Wire:
     hull = chain(pts)[:-1] + chain(reversed(pts))[:-1]   # counter-clockwise
     if len({q[2] for q in hull}) == 1:                   # one circle contains the rest
         (x, y), r = circles[hull[0][2]]
-        return cq.Wire.makeCircle(r, cq.Vector(x, y, 0), cq.Vector(0, 0, 1))
+        return cq.Wire.makeCircle(r, cq.Vector(x, y, 0), cq.Vector(0, 0, 1)), []
     # Start at a change of circle so no run wraps around the end of the list.
     start = next(j for j in range(len(hull)) if hull[j][2] != hull[j - 1][2])
     hull = hull[start:] + hull[:start]
@@ -156,38 +189,157 @@ def _circle_hull(circles, n: int = 720) -> cq.Wire:
             if a1 <= a0:
                 a1 += 360.0
             arc = cq.Edge.makeCircle(r, cq.Vector(x, y, 0), cq.Vector(0, 0, 1), a0, a1)
-            pieces.append((arc, arc.startPoint(), arc.endPoint()))
+            pieces.append((arc, arc.startPoint(), arc.endPoint(), run[0][2]))
         else:
             v = cq.Vector(run[0][0], run[0][1], 0)
-            pieces.append((None, v, v))
-    edges = []
-    for j, (arc, _, end) in enumerate(pieces):
+            pieces.append((None, v, v, run[0][2]))
+    edges, lines = [], []
+    for j, (arc, _, end, i) in enumerate(pieces):
         if arc is not None:
             edges.append(arc)
-        nxt = pieces[(j + 1) % len(pieces)][1]
+        _, nxt, _, k = pieces[(j + 1) % len(pieces)]
         if (nxt - end).Length > 1e-9:
             edges.append(cq.Edge.makeLine(end, nxt))
-    return cq.Wire.assembleEdges(edges)
+            lines.append((i, k, end, nxt))
+    return cq.Wire.assembleEdges(edges), lines
 
 
 def outline_circles(p: dict, lay: Layout):
-    """Circles whose convex hull is the insert's plate outline (axle boss + tongue)."""
+    """(centre, radius, role) circles whose convex hull is the plate outline (boss + tongue)."""
     r = p["corner_radius"]
     h = p["tongue_height"] / 2 - r
     xf = p["tongue_length"] - r
     z = p["bolt_z"]
     return [
-        ((lay.ax, lay.ay), p["boss_radius"]),
-        ((0.0, z + h), r), ((0.0, z - h), r),
-        ((xf, z + h), r), ((xf, z - h), r),
+        ((lay.ax, lay.ay), p["boss_radius"], "axle"),
+        ((0.0, z + h), r, "slider"), ((0.0, z - h), r, "slider"),
+        ((xf, z + h), r, "slider"), ((xf, z - h), r, "slider"),
     ]
 
 
-def plate(p: dict, lay: Layout, extra_circles=(), depth=None) -> cq.Workplane:
-    """Hull outline extruded from the inboard face (local z=0) outboard."""
-    face = cq.Face.makeFromWires(_circle_hull(list(outline_circles(p, lay)) + list(extra_circles)))
-    h = depth if depth is not None else lay.t
-    return cq.Workplane("XY").add(cq.Solid.extrudeLinear(face, cq.Vector(0, 0, h)))
+RELIEF_PAIRS = {
+    frozenset({"brake"}): "relief_brake_posts",
+    frozenset({"brake", "axle"}): "relief_brake_axle",
+    frozenset({"axle", "slider"}): "relief_axle_slider",
+    frozenset({"slider", "brake"}): "relief_slider_brake",
+}
+
+
+def protected_circles(p: dict, lay: Layout):
+    """Features reliefs must keep relief_margin away from: boss, key (+ slide), adjuster."""
+    m = p["relief_margin"]
+    out = [((lay.ax, lay.ay), p["boss_radius"] + 0.5)]   # the boss is an edge end: don't cut it
+    half = (p["key_length"] - p["key_width"]) / 2
+    for k in range(11):
+        out.append(((lay.kx - half + 2 * half * k / 10, lay.ky), p["key_width"] / 2 + m))
+    x0 = p["tongue_length"] - p["adjuster_depth"]
+    out += [((x0 + i, lay.ky), p["adjuster_tap_dia"] / 2 + m) for i in range(0, 11, 2)]
+    return out
+
+
+def outline_face(p: dict, lay: Layout, extra=(), protect=()):
+    """Plate outline: convex hull of the feature circles minus concave reliefs.
+
+    Each straight hull edge between two features gets a circular relief, centred on the edge,
+    up to the matching relief_* depth. The largest (chord x depth) cut that clears every
+    protected circle is used; its sharp ends are filleted with relief_round. Returns
+    (face, reliefs) with reliefs = [(role_a, role_b, depth, chord)].
+    """
+    circles = list(outline_circles(p, lay)) + list(extra)
+    wire, lines = _circle_hull([(c, r) for c, r, _ in circles])
+    hull_face = cq.Face.makeFromWires(wire)
+    guard = list(protected_circles(p, lay)) + list(protect)
+    m = p["relief_margin"]
+    cuts, corners, reliefs = [], [], []
+    for i, j, a, b in lines:
+        key = RELIEF_PAIRS.get(frozenset({circles[i][2], circles[j][2]}))
+        want = p.get(key, 0.0) if key else 0.0
+        edge = b - a
+        length = edge.Length
+        if want <= 0 or length - 2 * m < 6:
+            continue
+        u = edge / length
+        n_out = cq.Vector(u.y, -u.x, 0)        # hull is counter-clockwise: outward is right
+        mid = (a + b) * 0.5
+        # Endpoint features only need to stay uncut; everything else keeps the margin.
+        ends = [(circles[k][0], circles[k][1] + 0.5) for k in (i, j)]
+
+        def clear(c, d, mid=mid, n_out=n_out, ends=ends):
+            r = (c * c / 4 + d * d) / (2 * d)
+            ctr = mid + n_out * (r - d)
+            ok = all(math.hypot(ctr.x - gx, ctr.y - gy) >= r + gr for (gx, gy), gr in guard + ends)
+            return ok, ctr, r
+
+        best = None
+        c = length - 2 * m                     # chord of the cut along the edge
+        while c >= max(6.0, p["relief_min_chord"]):
+            d = min(want, 0.3 * c)             # gentle curves only (sag <= 0.3 x chord)
+            while d >= 1.0:
+                ok, ctr, r = clear(c, d)
+                if ok:
+                    if best is None or c * d > best[0]:
+                        best = (c * d, c, d, ctr, r)
+                    break
+                d -= 0.5
+            c -= 2.0
+        if best is None:
+            continue
+        _, c, d, ctr, r = best
+        cuts.append((ctr, r))
+        corners += [mid - u * (c / 2), mid + u * (c / 2)]
+        reliefs.append((circles[i][2], circles[j][2], round(d, 2), round(c, 1)))
+    if not cuts:
+        return hull_face, reliefs
+    sk = cq.Sketch().face(hull_face)
+    for ctr, r in cuts:
+        sk = sk.push([(ctr.x, ctr.y)]).circle(r, mode="s").reset()
+    face = max(sk._faces.Faces(), key=lambda f: f.Area())
+    # Round each relief corner; fall back to a smaller radius (then none) where it won't fit.
+    for pt in corners:
+        v = min(face.Vertices(), key=lambda x: (x.Center() - pt).Length)
+        if (v.Center() - pt).Length > 0.05:
+            continue
+        for rr in (p["relief_round"], p["relief_round"] / 2):
+            if rr <= 0:
+                break
+            try:
+                face = face.fillet2D(rr, [v])
+                break
+            except Exception:
+                continue
+    return face, reliefs
+
+
+def _prism(face: cq.Face, z0: float, z1: float) -> cq.Solid:
+    return cq.Solid.extrudeLinear(face.translate((0, 0, z0)), cq.Vector(0, 0, z1 - z0))
+
+
+def plate(p: dict, lay: Layout, face: cq.Face, depth=None) -> cq.Workplane:
+    """Outline extruded outboard from the inboard face (local z = 0).
+
+    With a bend (lay.zs != 0) the slider region sits at z in [zs, zs + t], the axle region at
+    [0, t], joined by a sloped joggle across bend_length, bend lines square to key -> axle.
+    ``depth`` gives a plain extrusion [0, depth] (used for thick bosses near the axle).
+    """
+    if depth is not None or lay.zs == 0:
+        return cq.Workplane("XY").add(_prism(face, 0, depth if depth is not None else lay.t))
+    dx, dy = lay.ax - lay.kx, lay.ay - lay.ky
+    dist = math.hypot(dx, dy)
+    dx, dy = dx / dist, dy / dist
+    s0 = p["bend_start"]
+    s1 = s0 + p["bend_length"]
+    if s1 > dist - p["boss_radius"] - 2:
+        raise ValueError(
+            f"bend ({s0:g}..{s1:g} from the key) does not fit before the axle boss "
+            f"({dist - p['boss_radius']:.1f} away); reduce bend_start / bend_length or use "
+            "hub_offset_mode = 'thin'"
+        )
+    zs, t, big = lay.zs, lay.t, 500.0
+    prof = [(-big, zs), (s0, zs), (s1, 0), (big, 0), (big, t), (s1, t), (s0, zs + t), (-big, zs + t)]
+    plane = cq.Plane(origin=(lay.kx, lay.ky, 0), xDir=(dx, dy, 0), normal=(dy, -dx, 0))
+    joggle = cq.Workplane(plane).polyline(prof).close().extrude(big, both=True)
+    lo, hi = min(zs, 0) - 1, max(zs, 0) + t + 1
+    return cq.Workplane("XY").add(_prism(face, lo, hi)).intersect(joggle)
 
 
 def cylinder(x, y, r, z0, z1) -> cq.Workplane:
@@ -201,8 +353,8 @@ def tongue_holes(body: cq.Workplane, p: dict, lay: Layout) -> cq.Workplane:
     while it slides; an outer clamp plate bears on the frame around the slot.
     """
     key = (
-        cq.Workplane("XY").workplane(offset=lay.t - 0.01)
-        .center(p["bolt_x"] + p["bolt_pitch"] / 2, p["bolt_z"])
+        cq.Workplane("XY").workplane(offset=lay.zs + lay.t - 0.01)
+        .center(lay.kx, lay.ky)
         .slot2D(p["key_length"], p["key_width"]).extrude(p["key_height"] + 0.01)
     )
     body = body.union(key)
@@ -212,7 +364,7 @@ def tongue_holes(body: cq.Workplane, p: dict, lay: Layout) -> cq.Workplane:
     # Runs out of whatever is ahead of the tongue (e.g. a brake web), so drill long.
     adj = (
         cq.Workplane("YZ").workplane(offset=p["tongue_length"] - p["adjuster_depth"])
-        .center(p["bolt_z"], lay.t / 2).circle(p["adjuster_tap_dia"] / 2).extrude(200)
+        .center(p["bolt_z"], lay.zs + lay.t / 2).circle(p["adjuster_tap_dia"] / 2).extrude(200)
     )
     return body.cut(adj)
 
@@ -249,10 +401,20 @@ def build_right(p: dict) -> tuple[cq.Workplane, dict]:
     lay = layout(p)
     depth = UDH_RECESS_DEPTH.nominal
     total = depth + UDH_FLOOR_TO_OUTBOARD.nominal          # 16.5 inboard face -> outboard face
+    a = math.radians(UDH_STOP_ANGLE.nominal)
+    n = (math.cos(a), math.sin(a))
+    d = UDH_STOP_OFFSET.nominal
+    # Keep reliefs off the forward rotational stop: protect points just ahead of the stop line.
+    m = p["relief_margin"]
+    w = (-n[1], n[0])
+    protect = [((lay.ax + (d + 3) * n[0] - k * w[0], lay.ay + (d + 3) * n[1] - k * w[1]), m + 3)
+               for k in range(0, 32, 2)]
+    face, reliefs = outline_face(p, lay, protect=protect)
+
     # Full thickness: the boss, plus the plate below the axle back from udh_thick_forward
     # (so the whole pocket floor has 12.5 behind it). The key region above stays thin.
-    body = plate(p, lay)
-    below = plate(p, lay, depth=total).intersect(
+    body = plate(p, lay, face)
+    below = plate(p, lay, face, depth=total).intersect(
         cq.Workplane("XY").box(400, 400, 100, centered=(False, False, False))
         .translate((lay.ax + p["udh_thick_forward"] - 400, lay.ay - 400, -1))
     )
@@ -261,9 +423,6 @@ def build_right(p: dict) -> tuple[cq.Workplane, dict]:
     # Hanger pocket, 4 deep from the inboard face; floor is datum B. Upper edge: R15 MIN arc.
     # Below the axle it is bounded only by the forward rotational stop face (14.4 from the
     # axle, normal 30 deg above +X) and opens to the rear for >= 60 deg backward rotation.
-    a = math.radians(UDH_STOP_ANGLE.nominal)
-    n = (math.cos(a), math.sin(a))
-    d = UDH_STOP_OFFSET.nominal
     far = 200.0
     x0 = d / n[0]
     xb = (d + far * n[1]) / n[0]
@@ -284,6 +443,7 @@ def build_right(p: dict) -> tuple[cq.Workplane, dict]:
         "lay": lay,
         "total": total,
         "stop_area": stop_area,
+        "reliefs": reliefs,
     }
     return body, info
 
@@ -302,6 +462,7 @@ LEFT_PARAMS = {
                                   # None = CALIPER_MOUNT_ANGLE for the chosen mount
     "rotor_clearance": 2.0,       # brake bosses stay this far outboard of the rotor
     "brake_boss_size": 18.0,      # boss width along the bolt line
+    "brake_edge_radius": 3.0,     # rounds the post / flat-tab corners (side profile)
     "post_height": 16.0,          # post mount: boss depth below the mount face (>= 13 engagement)
     "flat_tab_thickness": 10.0,   # flat mount: tab under the mount face (bolts from below)
     "is_tab_thickness": 8.0,      # IS: ear thickness outboard of its face
@@ -356,6 +517,11 @@ def _block(pt, u, v, u0, u1, v0, v1, z0, z1) -> cq.Workplane:
     )
 
 
+def _rounded(block: cq.Workplane, r: float) -> cq.Workplane:
+    """Round a brake boss's corners in the side profile (edges square to the plate)."""
+    return block.edges("|Z").fillet(r) if r > 0 else block
+
+
 def _rod(pt, v, uu, v0, v1, z, r) -> cq.Workplane:
     """Cylinder along the mount's v axis at u = uu from v0 to v1, at local z (bolt plane)."""
     c = pt(uu, v0)
@@ -367,16 +533,35 @@ def build_left(p: dict) -> tuple[cq.Workplane, dict]:
     lay = layout(p)
     bg = brake_geometry(p, lay)
     s = p["brake_boss_size"] / 2
-    extra = []
+    extra, protect = [], []
     if bg:
-        mp = bg["pos"]
+        mp, pt = bg["pos"], bg["pt"]
+        m = p["relief_margin"]
         # Web circles stay below the mount face (the caliper / adapter sits above it).
         depth = {"post": p["post_height"], "flat": p["flat_tab_thickness"]}.get(mp.mount, 2 * s)
         r = p["is_ear_radius"] if mp.mount == "is" else min(s, depth / 2)
         vc = mp.top if mp.mount == "is" else mp.top - r
         for b in (mp.bolt1, mp.bolt2):
-            extra.append((bg["pt"](b, vc), r))
-    body = plate(p, lay, extra_circles=extra)
+            extra.append((pt(b, vc), r, "brake"))
+            if mp.mount == "is":
+                protect.append((pt(b, vc), r + m))           # ears: keep a ring around the hole
+        # Boss footprints (post blocks / flat tab), sampled along their outlines.
+        if mp.mount == "post":
+            boxes = [(b - s, b + s, mp.top - p["post_height"], mp.top) for b in (mp.bolt1, mp.bolt2)]
+        elif mp.mount == "flat":
+            boxes = [(mp.bolt1 - s, mp.bolt2 + s, mp.top - p["flat_tab_thickness"], mp.top)]
+        else:
+            boxes = []
+        for u0, u1, v0, v1 in boxes:
+            nu, nv = max(2, int((u1 - u0) / 2)), max(2, int((v1 - v0) / 2))
+            for k in range(nu + 1):
+                for vv in (v0, v1):
+                    protect.append((pt(u0 + (u1 - u0) * k / nu, vv), m))
+            for k in range(nv + 1):
+                for uu in (u0, u1):
+                    protect.append((pt(uu, v0 + (v1 - v0) * k / nv), m))
+    face, reliefs = outline_face(p, lay, extra=extra, protect=protect)
+    body = plate(p, lay, face)
 
     z_out = p["nds_thickness_D"] - (lay.y_in - lay.hub_old / 2)    # outer face, local z
     body = body.union(cylinder(lay.ax, lay.ay, p["boss_radius"], 0, z_out))
@@ -389,14 +574,15 @@ def build_left(p: dict) -> tuple[cq.Workplane, dict]:
         if mp.mount == "post":
             z0 = max(bg["z_lat"] - s / 2, bg["z_rotor"])
             for b in (b1, b2):
-                body = body.union(_block(pt, u, v, b - s, b + s, mp.top - p["post_height"],
-                                         mp.top, z0, lay.t))
+                body = body.union(_rounded(_block(pt, u, v, b - s, b + s, mp.top - p["post_height"],
+                                                  mp.top, z0, lay.t), p["brake_edge_radius"]))
                 body = body.cut(_rod(pt, v, b, mp.top - 13.0, mp.top + 1, bg["z_lat"],
                                      p["post_tap_dia"] / 2))
         elif mp.mount == "flat":
             z0 = max(bg["z_lat"] - s / 2, bg["z_rotor"])
-            body = body.union(_block(pt, u, v, b1 - s, b2 + s, mp.top - p["flat_tab_thickness"],
-                                     mp.top, z0, lay.t))
+            body = body.union(_rounded(_block(pt, u, v, b1 - s, b2 + s,
+                                              mp.top - p["flat_tab_thickness"], mp.top, z0, lay.t),
+                                       p["brake_edge_radius"]))
             tab0 = mp.top - p["flat_tab_thickness"]
             for b in (b1, b2):
                 # Through the tab, plus a counterbore below it for the bolt head.
@@ -415,7 +601,7 @@ def build_left(p: dict) -> tuple[cq.Workplane, dict]:
     body = body.cut(cylinder(lay.ax, lay.ay, p["axle_hole_dia"] / 2, -50, 50))
     body = tongue_holes(body, p, lay)
     info = {
-        "lay": lay, "brake": bg, "z_out": z_out, "hub_z": hub_z,
+        "lay": lay, "brake": bg, "z_out": z_out, "hub_z": hub_z, "reliefs": reliefs,
     }
     return body, info
 
@@ -428,3 +614,8 @@ def describe(p: dict, side: str, info: dict) -> None:
           f"frame seat |Y| = {lay.seat_y:.2f}")
     print(f"{side}: axle at X {lay.ax:+.1f} Z {lay.ay:+.1f} from nominal "
           f"(chainstay {p['axle_offset_x']:+.1f})")
+    if lay.zs:
+        print(f"{side}: bent plate: slider region {-lay.zs:+.2f} inboard of the axle region "
+              f"(bend {p['bend_start']:g}..{p['bend_start'] + p['bend_length']:g} from the key)")
+    for a, b, d, c in info.get("reliefs", []):
+        print(f"{side}: relief {a}-{b}: {d:g} deep over {c:g}")

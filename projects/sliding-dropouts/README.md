@@ -51,6 +51,23 @@ The axle offsets then move the axle 32 mm back and 32 mm up from there by defaul
 reaches further back and up to the boss than on the Tange parts. Set both offsets to 0 for the
 Tange proportions.
 
+**Outline.** Each plate starts as the convex hull of the axle boss, the tongue corners and the
+brake bosses. Reliefs then cut gentle concave curves into the straight edges between features, as
+on the Tange parts: between the brake posts, between the brake mount and the axle, and between the
+axle and the slider. Each relief is centred on its edge, and its depth is capped at 0.3 × its
+length. The cut is the largest one that keeps `relief_margin` clear of the key (including its
+slide), the bolt and adjuster holes, the brake bosses, IS ear rings and the UDH stop face; its ends
+are filleted. `cqp build` prints each relief's depth and length.
+
+**Hub offset bend.** The frame's plate seat is fixed, so a wider hub would otherwise need a thinner
+plate. With `hub_offset_mode = "bend"` the plate keeps its full thickness. The slider region stays
+on the frame seat and the axle region steps outboard by `hub_width_offset / 2`, joined by a sloped
+joggle whose bend lines run square to the line from the key to the axle. The bend must fit between
+the frame plate and the axle boss. `cqp build` fails with a message if it doesn't, and the assembly
+reports any frame-plate overlap. The slider region then sits `hub_width_offset / 2` inboard of
+where a native wide-hub frame's inboard face would be, so check cassette and chain clearance on the
+drive side.
+
 Coordinates: origin = the frame's nominal axle centre, X forward, Z up, +Y = left. The `front` view
 looks at the drive side; `back` at the brake side.
 
@@ -58,7 +75,12 @@ looks at the drive side; `back` at the brake side.
 | parameter | default | meaning |
 |---|---|---|
 | `frame_old` | 142 | hub OLD the frame's insert seats were built for |
-| `hub_width_offset` | 0 | extra hub OLD (total). e.g. 6 runs a 148 hub in a 142 frame; each insert plate gets 3 mm thinner |
+| `hub_width_offset` | 0 | extra hub OLD (total). e.g. 6 runs a 148 hub in a 142 frame |
+| `hub_offset_mode` | bend | `bend`: full-thickness plate with a joggle, so the axle region sits `hub_width_offset / 2` outboard of the slider region. `thin`: the whole plate gets thinner instead |
+| `bend_start` / `bend_length` | 30 / 8 | where the bend starts (from the key centre towards the axle) and its sloped length |
+| `relief_brake_posts` / `relief_brake_axle` / `relief_axle_slider` / `relief_slider_brake` | 10 / 10 / 8 / 0 | maximum depth of the concave cut-outs between those features (0 = none) |
+| `relief_margin` / `relief_round` / `relief_min_chord` | 4 / 3 / 15 | material kept around the key, bolts, adjuster, brake bosses and the UDH stop; fillet at the cut ends; shortest cut worth making |
+| `brake_edge_radius` | 3 | rounds the post-mount and flat-mount boss corners in the side profile |
 | `axle_offset_x` | 32 | + moves the axle rearward (longer chainstays), measured from the Tange-proportioned position |
 | `axle_offset_y` | 32 | + moves the axle up |
 | `bolt_x` / `bolt_z` / `bolt_pitch` | 24 / 26 / 18 | first clamp bolt position ahead of / above the nominal axle, and bolt spacing |
