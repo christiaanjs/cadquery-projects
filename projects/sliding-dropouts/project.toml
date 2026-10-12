@@ -13,13 +13,19 @@ views = ["iso", "front", "back", "top"]
 
 # Each variant is built and published separately (its own page, drawings and downloads).
 [[variants]]
-slug = "tange-post"
-title = "Tange layout, post mount"
-description = "Tange-style proportions with the axle at the nominal position, post-mount brake, 142 hub."
-params = { axle_offset_x = 0.0, axle_offset_y = 0.0, brake_mount = "post", hub_width_offset = 0.0 }
+slug = "tange-is"
+title = "Tange layout, IS mount"
+description = "Tange-style proportions with the axle at the nominal position, IS brake mount, 142 hub."
+params = { axle_offset_x = 0.0, axle_offset_y = 0.0, brake_mount = "is", hub_width_offset = 0.0 }
 
 [[variants]]
 slug = "flat-offset-148"
 title = "Flat mount, axle 32 back & up, 148 hub"
-description = "Axle 32 mm rearward and 32 mm up from the Tange position, flat-mount brake, +6 mm hub width (142 frame, 148 hub)."
-params = { axle_offset_x = 32.0, axle_offset_y = 32.0, brake_mount = "flat", hub_width_offset = 6.0 }
+description = "Axle 32 mm rearward and 32 mm up from the Tange position, flat-mount brake, +6 mm hub width (142 frame, 148 hub) with a bent plate."
+params = { axle_offset_x = 32.0, axle_offset_y = 32.0, brake_mount = "flat", hub_width_offset = 6.0, hub_offset_mode = "bend" }
+
+[[variants]]
+slug = "is-offset-148"
+title = "IS mount, axle 24 back & up, 148 hub"
+description = "IS brake mount, +6 mm hub width (142 frame, 148 hub) with a bent plate. 24 mm back and up is the smallest equal offset that lets the bend clear the frame plate (about 23.75 mm with the bend ending 2 mm before the axle boss)."
+params = { axle_offset_x = 24.0, axle_offset_y = 24.0, brake_mount = "is", hub_width_offset = 6.0, hub_offset_mode = "bend", bend_start = 29.0 }

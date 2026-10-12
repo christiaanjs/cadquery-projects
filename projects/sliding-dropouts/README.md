@@ -24,15 +24,20 @@ Shared parameters are `PARAMS` in `models/_common.py`; side-specific ones are `R
 their own `PARAMS`, and `assembly.py` uses all of them, so edit `_common.py` to change both sides together.
 
 ## Variants
-The site publishes two variants (set in `project.toml` under `[[variants]]`), each with its own
+The site publishes three variants (set in `project.toml` under `[[variants]]`), each with its own
 page, drawings and downloads:
 
 | variant | brake | axle offset (x / y) | hub |
 |---|---|---|---|
-| `tange-post` | post mount | 0 / 0 (Tange proportions) | 142 (frame 142) |
-| `flat-offset-148` | flat mount | 32 / 32 (back and up) | 148 (frame 142, `hub_width_offset` = 6) |
+| `tange-is` | IS mount | 0 / 0 (Tange proportions) | 142 (frame 142) |
+| `flat-offset-148` | flat mount | 32 / 32 (back and up) | 148 (frame 142, `hub_width_offset` = 6, bent plate) |
+| `is-offset-148` | IS mount | 24 / 24 (back and up) | 148 (frame 142, `hub_width_offset` = 6, bent plate, `bend_start` = 29) |
 
-`cqp build sliding-dropouts` builds both. `cqp render sliding-dropouts --variant tange-post` previews
+For `is-offset-148`, 24 mm is the smallest equal back-and-up offset at which the bent plate clears the
+frame plate. With the bend ending 2 mm before the axle boss, the limit is about 23.75 mm; below that,
+either the bend doesn't fit or the raised axle region overlaps the frame plate.
+
+`cqp build sliding-dropouts` builds all three. `cqp render sliding-dropouts --variant tange-is` previews
 one; without `--variant` the `PARAMS` defaults below are used.
 
 ## Construction
@@ -52,12 +57,21 @@ reaches further back and up to the boss than on the Tange parts. Set both offset
 Tange proportions.
 
 **Outline.** Each plate starts as the convex hull of the axle boss, the tongue corners and the
-brake bosses. Reliefs then cut gentle concave curves into the straight edges between features, as
-on the Tange parts: between the brake posts, between the brake mount and the axle, and between the
-axle and the slider. Each relief is centred on its edge, and its depth is capped at 0.3 × its
-length. The cut is the largest one that keeps `relief_margin` clear of the key (including its
-slide), the bolt and adjuster holes, the brake bosses, IS ear rings and the UDH stop face; its ends
-are filleted. `cqp build` prints each relief's depth and length.
+brake bosses: one circle per IS ear, and circles at the rounded corners of each post block and the
+flat tab. Reliefs then replace straight hull edges with smooth concave curves, as on the Tange
+parts. The outline follows the first feature's circle a little further round, then a cubic Bézier
+runs tangent-continuously into the next feature's circle, so there are no corners to fillet.
+
+Each section can be switched on or off: `relieve_brake_posts`, `relieve_brake_axle`,
+`relieve_slider_brake` (key region to brake mount) and `relieve_axle_slider`. The last is off by
+default, so no variant relieves between the key and the axle. The relief used on each edge is the
+largest (by area removed) that:
+- stays within `relief_max_depth` and `relief_max_ratio` × the edge length;
+- keeps `relief_margin` clear of the key (including its slide), the adjuster hole, the side of each
+  brake boss facing the plate, the IS ear rings and the UDH stop face;
+- doesn't cut into any other feature.
+
+`cqp build` prints each relief's depth and edge length.
 
 **Hub offset bend.** The frame's plate seat is fixed, so a wider hub would otherwise need a thinner
 plate. With `hub_offset_mode = "bend"` the plate keeps its full thickness. The slider region stays
@@ -78,8 +92,9 @@ looks at the drive side; `back` at the brake side.
 | `hub_width_offset` | 0 | extra hub OLD (total). e.g. 6 runs a 148 hub in a 142 frame |
 | `hub_offset_mode` | bend | `bend`: full-thickness plate with a joggle, so the axle region sits `hub_width_offset / 2` outboard of the slider region. `thin`: the whole plate gets thinner instead |
 | `bend_start` / `bend_length` | 30 / 8 | where the bend starts (from the key centre towards the axle) and its sloped length |
-| `relief_brake_posts` / `relief_brake_axle` / `relief_axle_slider` / `relief_slider_brake` | 10 / 10 / 8 / 0 | maximum depth of the concave cut-outs between those features (0 = none) |
-| `relief_margin` / `relief_round` / `relief_min_chord` | 4 / 3 / 15 | material kept around the key, bolts, adjuster, brake bosses and the UDH stop; fillet at the cut ends; shortest cut worth making |
+| `relieve_brake_posts` / `relieve_brake_axle` / `relieve_slider_brake` / `relieve_axle_slider` | on / on / on / off | relieve that section of the outline |
+| `relief_max_depth` / `relief_max_ratio` | 12 / 0.35 | deepest a relief may cut in from the hull edge, absolutely and as a fraction of the edge length |
+| `relief_margin` / `relief_min_chord` | 4 / 15 | material kept around the key, adjuster, brake bosses and the UDH stop; shortest edge worth relieving |
 | `brake_edge_radius` | 3 | rounds the post-mount and flat-mount boss corners in the side profile |
 | `axle_offset_x` | 32 | + moves the axle rearward (longer chainstays), measured from the Tange-proportioned position |
 | `axle_offset_y` | 32 | + moves the axle up |
@@ -124,6 +139,12 @@ the Tange IS insert.
   the insert is a plain convex hull in the plate plane.
 - Rotor lateral data only covers 142 and 148 mm hubs. Other hub widths raise an error unless
   `brake_mount = "none"`.
+- **Rotor shift with `hub_width_offset`:** the brake mount follows the actual hub's rotor position
+  from `disc_brake_mounts.ROTOR_FACE_FROM_CENTER`: 53.25 for 142, 55.25 for 148. So +6 mm of hub
+  width moves the rotor out **2.0 mm**, not `hub_width_offset / 2` = 3.0 mm, even though the hub
+  faces move 3.0 mm. Verdone gives 53.25 in his list and 52.25 in his equation text for 142 (see
+  the note in `disc_brake_mounts.py`). 52.25 would give exactly 3.0 mm, which matches Boost moving
+  the whole hub 3 mm per side. Confirm which value is right before machining a brake mount.
 - Verdone's model diverges from Shimano's post-mount numbers at 180/203 mm (see
   `disc_brake_mounts.compare_post_mount_to_shimano`).
 - UDH use needs a (free) SRAM licence. Verify the right insert against the hangerless clearance

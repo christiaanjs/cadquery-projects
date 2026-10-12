@@ -33,6 +33,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import cadquery as cq
+import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import disc_brake_mounts as dbm  # noqa: E402
@@ -63,15 +64,16 @@ PARAMS = {
     "bolt_tap_dia": 4.2,          # M5x0.8 tap drill
     "adjuster_tap_dia": 3.3,      # M4x0.7 tap drill, along X into the front end
     "adjuster_depth": 10.0,
-    # Reliefs: concave cut-outs in the outline between features (max depth in mm, 0 = off).
-    # Each is reduced automatically to keep relief_margin from the boss, key, brake bosses etc.
-    "relief_brake_posts": 10.0,   # between the two brake bosses
-    "relief_brake_axle": 10.0,    # between the brake mount and the axle boss
-    "relief_axle_slider": 8.0,    # between the axle boss and the slider (key) region
-    "relief_slider_brake": 0.0,   # between the slider region and the brake mount
-    "relief_margin": 4.0,         # material kept around protected features
-    "relief_round": 3.0,          # fillet where a relief meets the straight edge
-    "relief_min_chord": 15.0,     # skip reliefs shorter than this (they read as notches)
+    # Reliefs: smooth concave curves in the outline between features (each section on/off).
+    # Each is sized automatically to keep relief_margin from the key, brake bosses etc.
+    "relieve_brake_posts": True,  # between the two brake bosses
+    "relieve_brake_axle": True,   # between the brake mount and the axle boss
+    "relieve_axle_slider": False, # between the axle boss and the slider (key) region
+    "relieve_slider_brake": True, # between the slider (key) region and the brake mount
+    "relief_max_depth": 12.0,     # deepest a relief may cut in from the hull edge
+    "relief_max_ratio": 0.35,     # ... and at most this fraction of the edge length
+    "relief_margin": 4.0,         # material kept around the key, holes, brake bosses, UDH stop
+    "relief_min_chord": 15.0,     # skip edges shorter than this (a relief would read as a notch)
 }
 
 FRAME_PLATE = {
@@ -136,16 +138,12 @@ def layout(p: dict) -> Layout:
                   p["bolt_x"] + p["bolt_pitch"] / 2, p["bolt_z"])
 
 
-def _circle_hull(circles, n: int = 720):
-    """Convex hull of circles as a closed wire: exact arcs joined by tangent lines.
+def _hull_pieces(circles, n: int = 720):
+    """Convex hull of circles as counter-clockwise pieces [(circle index, a0, a1)] (radians).
 
-    Returns (wire, lines) with lines = [(i, j, start, end)]: each straight hull edge, running
-    counter-clockwise from circle i to circle j.
-
-    cq.Sketch.hull() fails on some layouts (e.g. post/IS webs with a large axle offset), so
-    hull points sampled on each circle, then rebuild every run of points from one circle as an
-    arc of that exact circle. Exact arcs matter: the boss cylinder is unioned on top and
-    near-coincident faces break later booleans.
+    Consecutive pieces are joined by straight tangent lines. cq.Sketch.hull() fails on some
+    layouts, so this samples points on each circle, hulls them, and turns each run of points
+    from one circle back into an arc of that exact circle (a0 == a1 for a single point).
     """
     pts = []
     for i, ((x, y), r) in enumerate(circles):
@@ -167,8 +165,7 @@ def _circle_hull(circles, n: int = 720):
 
     hull = chain(pts)[:-1] + chain(reversed(pts))[:-1]   # counter-clockwise
     if len({q[2] for q in hull}) == 1:                   # one circle contains the rest
-        (x, y), r = circles[hull[0][2]]
-        return cq.Wire.makeCircle(r, cq.Vector(x, y, 0), cq.Vector(0, 0, 1)), []
+        return [(hull[0][2], 0.0, 2 * math.pi)]
     # Start at a change of circle so no run wraps around the end of the list.
     start = next(j for j in range(len(hull)) if hull[j][2] != hull[j - 1][2])
     hull = hull[start:] + hull[:start]
@@ -178,30 +175,51 @@ def _circle_hull(circles, n: int = 720):
             runs[-1].append(q)
         else:
             runs.append([q])
-
-    # Each run -> an exact arc (or a single point when it is too short to matter).
     pieces = []
     for run in runs:
-        (x, y), r = circles[run[0][2]]
-        if len(run) >= 3:
-            a0 = 360.0 * run[0][3] / n
-            a1 = 360.0 * run[-1][3] / n
-            if a1 <= a0:
-                a1 += 360.0
-            arc = cq.Edge.makeCircle(r, cq.Vector(x, y, 0), cq.Vector(0, 0, 1), a0, a1)
-            pieces.append((arc, arc.startPoint(), arc.endPoint(), run[0][2]))
-        else:
-            v = cq.Vector(run[0][0], run[0][1], 0)
-            pieces.append((None, v, v, run[0][2]))
-    edges, lines = [], []
-    for j, (arc, _, end, i) in enumerate(pieces):
-        if arc is not None:
-            edges.append(arc)
-        _, nxt, _, k = pieces[(j + 1) % len(pieces)]
-        if (nxt - end).Length > 1e-9:
-            edges.append(cq.Edge.makeLine(end, nxt))
-            lines.append((i, k, end, nxt))
-    return cq.Wire.assembleEdges(edges), lines
+        a0 = 2 * math.pi * run[0][3] / n
+        a1 = 2 * math.pi * run[-1][3] / n
+        if a1 < a0:
+            a1 += 2 * math.pi
+        pieces.append((run[0][2], a0, a1))
+    return pieces
+
+
+def _on(circle, a):
+    (x, y), r = circle
+    return np.array([x + r * math.cos(a), y + r * math.sin(a)])
+
+
+def _tangent(a):
+    return np.array([-math.sin(a), math.cos(a)])        # direction of travel, counter-clockwise
+
+
+def _bezier(p0, t0, p1, t1, n=48):
+    k = np.linalg.norm(p1 - p0) / 3
+    c = [p0, p0 + k * t0, p1 - k * t1, p1]
+    s = np.linspace(0, 1, n)[:, None]
+    return ((1 - s) ** 3 * c[0] + 3 * (1 - s) ** 2 * s * c[1] + 3 * (1 - s) * s ** 2 * c[2]
+            + s ** 3 * c[3]), c
+
+
+def _arc_pts(circle, a0, a1, step=0.0873):          # ~5 deg
+    m = max(2, int(abs(a1 - a0) / step) + 1)
+    return np.array([_on(circle, a) for a in np.linspace(a0, a1, m)])
+
+
+def _poly_hits(poly, centres, radii):
+    """True where a disc (centre, radius) overlaps the closed polygon poly (N x 2)."""
+    a, b = poly, np.roll(poly, -1, axis=0)
+    ab = b - a
+    ap = centres[:, None, :] - a[None]
+    t = np.clip((ap * ab).sum(-1) / np.maximum((ab * ab).sum(-1), 1e-12), 0, 1)
+    d = np.linalg.norm(ap - t[..., None] * ab, axis=-1).min(1)
+    x, y = centres[:, 0:1], centres[:, 1:2]
+    ya, yb = a[None, :, 1], b[None, :, 1]
+    cross = ((ya > y) != (yb > y)) & (
+        x < a[None, :, 0] + (y - ya) * (b[None, :, 0] - a[None, :, 0]) / np.where(yb == ya, 1e-12, yb - ya))
+    inside = cross.sum(1) % 2 == 1
+    return inside | (d < radii)
 
 
 def outline_circles(p: dict, lay: Layout):
@@ -218,17 +236,17 @@ def outline_circles(p: dict, lay: Layout):
 
 
 RELIEF_PAIRS = {
-    frozenset({"brake"}): "relief_brake_posts",
-    frozenset({"brake", "axle"}): "relief_brake_axle",
-    frozenset({"axle", "slider"}): "relief_axle_slider",
-    frozenset({"slider", "brake"}): "relief_slider_brake",
+    frozenset({"brake"}): "relieve_brake_posts",
+    frozenset({"brake", "axle"}): "relieve_brake_axle",
+    frozenset({"axle", "slider"}): "relieve_axle_slider",
+    frozenset({"slider", "brake"}): "relieve_slider_brake",
 }
 
 
 def protected_circles(p: dict, lay: Layout):
-    """Features reliefs must keep relief_margin away from: boss, key (+ slide), adjuster."""
+    """Features reliefs must keep relief_margin away from: key (+ slide), adjuster."""
     m = p["relief_margin"]
-    out = [((lay.ax, lay.ay), p["boss_radius"] + 0.5)]   # the boss is an edge end: don't cut it
+    out = []
     half = (p["key_length"] - p["key_width"]) / 2
     for k in range(11):
         out.append(((lay.kx - half + 2 * half * k / 10, lay.ky), p["key_width"] / 2 + m))
@@ -238,76 +256,99 @@ def protected_circles(p: dict, lay: Layout):
 
 
 def outline_face(p: dict, lay: Layout, extra=(), protect=()):
-    """Plate outline: convex hull of the feature circles minus concave reliefs.
+    """Plate outline: convex hull of the feature circles with smooth concave reliefs.
 
-    Each straight hull edge between two features gets a circular relief, centred on the edge,
-    up to the matching relief_* depth. The largest (chord x depth) cut that clears every
-    protected circle is used; its sharp ends are filleted with relief_round. Returns
-    (face, reliefs) with reliefs = [(role_a, role_b, depth, chord)].
+    A relief replaces the straight hull edge between two features: the outline follows the
+    first feature's circle a little further round, then a cubic Bezier runs tangent-
+    continuously into the second feature's circle. The largest relief (by area removed) is
+    used whose depth stays within relief_max_depth and relief_max_ratio x edge length, and
+    that keeps every protected circle (key and slide, holes, other features, brake bosses,
+    UDH stop) clear by its margin. Returns (face, reliefs = [(role_a, role_b, depth, length)]).
     """
     circles = list(outline_circles(p, lay)) + list(extra)
-    wire, lines = _circle_hull([(c, r) for c, r, _ in circles])
-    hull_face = cq.Face.makeFromWires(wire)
-    guard = list(protected_circles(p, lay)) + list(protect)
-    m = p["relief_margin"]
-    cuts, corners, reliefs = [], [], []
-    for i, j, a, b in lines:
-        key = RELIEF_PAIRS.get(frozenset({circles[i][2], circles[j][2]}))
-        want = p.get(key, 0.0) if key else 0.0
-        edge = b - a
-        length = edge.Length
-        if want <= 0 or length - 2 * m < 6:
+    cg = [(c, r) for c, r, _ in circles]
+    pieces = _hull_pieces(cg)
+    # Guards: (centre, radius, owner). A relief ignores guards owned by its own end features
+    # (their other corners, the margin under the boss it wraps); everything else stays clear.
+    feat = [(c, r + 0.5, role) for c, r, role in circles]  # no relief may cut another feature
+    guard = [g if len(g) == 3 else (*g, None)
+             for g in list(protected_circles(p, lay)) + list(protect)] + feat
+    gc = np.array([g[0] for g in guard], float)
+    gr = np.array([g[1] for g in guard], float)
+    owner = [g[2] for g in guard]
+    ext = [[0.0, 0.0] for _ in pieces]                     # extra wrap (radians) at each end
+    joins = {}
+    reliefs = []
+    npc = len(pieces)
+    for j in range(npc if npc > 1 else 0):
+        ia, _, a1 = pieces[j]
+        ib, b0, _ = pieces[(j + 1) % npc]
+        ra, rb = circles[ia][2], circles[ib][2]
+        toggle = RELIEF_PAIRS.get(frozenset({ra.split(":")[0], rb.split(":")[0]}))
+        if ra == rb or not toggle or not p.get(toggle, False):
+            continue                                       # same boss, or section switched off
+        ca, cb = cg[ia], cg[ib]
+        ta, tb = _on(ca, a1), _on(cb, b0)
+        length = float(np.linalg.norm(tb - ta))
+        if length < p["relief_min_chord"]:
             continue
-        u = edge / length
-        n_out = cq.Vector(u.y, -u.x, 0)        # hull is counter-clockwise: outward is right
-        mid = (a + b) * 0.5
-        # Endpoint features only need to stay uncut; everything else keeps the margin.
-        ends = [(circles[k][0], circles[k][1] + 0.5) for k in (i, j)]
-
-        def clear(c, d, mid=mid, n_out=n_out, ends=ends):
-            r = (c * c / 4 + d * d) / (2 * d)
-            ctr = mid + n_out * (r - d)
-            ok = all(math.hypot(ctr.x - gx, ctr.y - gy) >= r + gr for (gx, gy), gr in guard + ends)
-            return ok, ctr, r
-
+        u = (tb - ta) / length
+        n_in = np.array([-u[1], u[0]])                    # left of a CCW edge = into the plate
+        cap = min(p["relief_max_depth"], p["relief_max_ratio"] * length)
+        mine = np.array([o not in (ra, rb) for o in owner])
         best = None
-        c = length - 2 * m                     # chord of the cut along the edge
-        while c >= max(6.0, p["relief_min_chord"]):
-            d = min(want, 0.3 * c)             # gentle curves only (sag <= 0.3 x chord)
-            while d >= 1.0:
-                ok, ctr, r = clear(c, d)
-                if ok:
-                    if best is None or c * d > best[0]:
-                        best = (c * d, c, d, ctr, r)
+        for ratio in (1.0, 0.6, 1.6, 0.35, 2.8):
+            for w in np.arange(1.0, 60.0, 1.0):
+                wa, wb = w * min(1, 1 / ratio), w * min(1, ratio)
+                da, db = wa / ca[1], wb / cb[1]
+                if da > math.radians(100) or db > math.radians(100):
                     break
-                d -= 0.5
-            c -= 2.0
-        if best is None:
+                pa, pb = _on(ca, a1 + da), _on(cb, b0 - db)
+                curve, _ = _bezier(pa, _tangent(a1 + da), pb, _tangent(b0 - db))
+                depth = float(((curve - ta) @ n_in).max())
+                if depth > cap:
+                    break
+                region = np.vstack([curve, _arc_pts(cb, b0 - db, b0)[1:], [ta],
+                                    _arc_pts(ca, a1, a1 + da)[1:-1]])
+                if _poly_hits(region, gc[mine], gr[mine]).any():
+                    break
+                x, y = region[:, 0], region[:, 1]
+                area = 0.5 * abs(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
+                if best is None or area > best[0]:
+                    best = (area, da, db, depth)
+        if best is None or best[3] < 0.5:
             continue
-        _, c, d, ctr, r = best
-        cuts.append((ctr, r))
-        corners += [mid - u * (c / 2), mid + u * (c / 2)]
-        reliefs.append((circles[i][2], circles[j][2], round(d, 2), round(c, 1)))
-    if not cuts:
-        return hull_face, reliefs
-    sk = cq.Sketch().face(hull_face)
-    for ctr, r in cuts:
-        sk = sk.push([(ctr.x, ctr.y)]).circle(r, mode="s").reset()
-    face = max(sk._faces.Faces(), key=lambda f: f.Area())
-    # Round each relief corner; fall back to a smaller radius (then none) where it won't fit.
-    for pt in corners:
-        v = min(face.Vertices(), key=lambda x: (x.Center() - pt).Length)
-        if (v.Center() - pt).Length > 0.05:
-            continue
-        for rr in (p["relief_round"], p["relief_round"] / 2):
-            if rr <= 0:
-                break
-            try:
-                face = face.fillet2D(rr, [v])
-                break
-            except Exception:
-                continue
-    return face, reliefs
+        _, da, db, depth = best
+        ext[j][1] = da
+        ext[(j + 1) % npc][0] = db
+        joins[j] = True
+        reliefs.append((ra.split(":")[0], rb.split(":")[0], round(depth, 2), round(length, 1)))
+
+    # Assemble: arcs (extended where relieved), lines or Bezier joins between them.
+    arcs = []
+    for k, (i, a0, a1) in enumerate(pieces):
+        lo, hi = a0 - ext[k][0], a1 + ext[k][1]
+        (x, y), r = cg[i]
+        arc = (cq.Edge.makeCircle(r, cq.Vector(x, y, 0), cq.Vector(0, 0, 1),
+                                  math.degrees(lo), math.degrees(hi)) if hi - lo > 1e-9 else None)
+        arcs.append((arc, lo, hi, i))
+    if npc == 1:
+        return cq.Face.makeFromWires(cq.Wire.assembleEdges([arcs[0][0]])), reliefs
+    edges = []
+    for k, (arc, _lo, hi, i) in enumerate(arcs):
+        if arc is not None:
+            edges.append(arc)
+        nxt, nlo, _, ni = arcs[(k + 1) % npc]
+        p0 = arc.endPoint() if arc is not None else cq.Vector(*_on(cg[i], hi), 0)
+        p1 = nxt.startPoint() if nxt is not None else cq.Vector(*_on(cg[ni], nlo), 0)
+        if k in joins:
+            _, ctrl = _bezier(np.array([p0.x, p0.y]), _tangent(hi), np.array([p1.x, p1.y]),
+                              _tangent(nlo))
+            pts = [p0] + [cq.Vector(c[0], c[1], 0) for c in ctrl[1:3]] + [p1]
+            edges.append(cq.Edge.makeBezier(pts))
+        elif (p1 - p0).Length > 1e-9:
+            edges.append(cq.Edge.makeLine(p0, p1))
+    return cq.Face.makeFromWires(cq.Wire.assembleEdges(edges)), reliefs
 
 
 def _prism(face: cq.Face, z0: float, z1: float) -> cq.Solid:
@@ -537,29 +578,27 @@ def build_left(p: dict) -> tuple[cq.Workplane, dict]:
     if bg:
         mp, pt = bg["pos"], bg["pt"]
         m = p["relief_margin"]
-        # Web circles stay below the mount face (the caliper / adapter sits above it).
-        depth = {"post": p["post_height"], "flat": p["flat_tab_thickness"]}.get(mp.mount, 2 * s)
-        r = p["is_ear_radius"] if mp.mount == "is" else min(s, depth / 2)
-        vc = mp.top if mp.mount == "is" else mp.top - r
-        for b in (mp.bolt1, mp.bolt2):
-            extra.append((pt(b, vc), r, "brake"))
-            if mp.mount == "is":
-                protect.append((pt(b, vc), r + m))           # ears: keep a ring around the hole
-        # Boss footprints (post blocks / flat tab), sampled along their outlines.
+        # Hull features for each boss, tagged "brake:<n>" so no relief cuts across one boss.
+        # Post blocks and the flat tab: circles at their rounded corners (the outline hugs the
+        # boss); IS: one circle per ear. The boss side facing the plate keeps relief_margin.
+        rr = max(p["brake_edge_radius"], 0.5)
         if mp.mount == "post":
             boxes = [(b - s, b + s, mp.top - p["post_height"], mp.top) for b in (mp.bolt1, mp.bolt2)]
         elif mp.mount == "flat":
             boxes = [(mp.bolt1 - s, mp.bolt2 + s, mp.top - p["flat_tab_thickness"], mp.top)]
         else:
             boxes = []
-        for u0, u1, v0, v1 in boxes:
-            nu, nv = max(2, int((u1 - u0) / 2)), max(2, int((v1 - v0) / 2))
-            for k in range(nu + 1):
-                for vv in (v0, v1):
-                    protect.append((pt(u0 + (u1 - u0) * k / nu, vv), m))
-            for k in range(nv + 1):
-                for uu in (u0, u1):
-                    protect.append((pt(uu, v0 + (v1 - v0) * k / nv), m))
+        for n_box, (u0, u1, v0, v1) in enumerate(boxes):
+            for uu in (u0 + rr, u1 - rr):
+                for vv in (v0 + rr, v1 - rr):
+                    # 0.3 inside the boss so plate and boss faces never coincide
+                    extra.append((pt(uu, vv), rr - 0.3, f"brake:{n_box}"))
+            nu = max(2, int((u1 - u0) / 2))
+            protect += [(pt(u0 + (u1 - u0) * k / nu, v0), m, f"brake:{n_box}") for k in range(nu + 1)]
+        if mp.mount == "is":
+            for n_ear, b in enumerate((mp.bolt1, mp.bolt2)):
+                extra.append((pt(b, mp.top), p["is_ear_radius"], f"brake:{n_ear}"))
+                protect.append((pt(b, mp.top), p["is_ear_radius"] + m, f"brake:{n_ear}"))
     face, reliefs = outline_face(p, lay, extra=extra, protect=protect)
     body = plate(p, lay, face)
 
