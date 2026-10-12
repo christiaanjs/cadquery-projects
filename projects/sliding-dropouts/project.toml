@@ -1,0 +1,12 @@
+title = "Sliding dropouts (UDH / thru-axle)"
+description = "Parametric left/right sliding dropout inserts: SRAM UDH + 12 mm thru-axle, flat/post/IS brake mount, axle X/Y and hub-width offsets."
+units = "mm"
+tags = ["bike", "mechanical"]
+views = ["iso", "front", "back", "top", "side"]
+background = "#ffffff"
+
+[models.dropout_right]
+views = ["iso", "front", "back", "top"]
+
+[models.dropout_left]
+views = ["iso", "front", "back", "top"]
