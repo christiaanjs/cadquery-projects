@@ -116,6 +116,21 @@ the axle boss over the slide travel, so the boss can be as thick as the interfac
 The axle offsets then move the axle 32 mm back and 32 mm up from there by default, so the plate
 reaches further back and up to the boss than on the Tange parts. Set both offsets to 0 for the
 Tange proportions.</p>
+<p><strong>Outline.</strong> Each plate starts as the convex hull of the axle boss, the tongue corners and the
+brake bosses. Reliefs then cut gentle concave curves into the straight edges between features, as
+on the Tange parts: between the brake posts, between the brake mount and the axle, and between the
+axle and the slider. Each relief is centred on its edge, and its depth is capped at 0.3 × its
+length. The cut is the largest one that keeps <code>relief_margin</code> clear of the key (including its
+slide), the bolt and adjuster holes, the brake bosses, IS ear rings and the UDH stop face; its ends
+are filleted. <code>cqp build</code> prints each relief's depth and length.</p>
+<p><strong>Hub offset bend.</strong> The frame's plate seat is fixed, so a wider hub would otherwise need a thinner
+plate. With <code>hub_offset_mode = "bend"</code> the plate keeps its full thickness. The slider region stays
+on the frame seat and the axle region steps outboard by <code>hub_width_offset / 2</code>, joined by a sloped
+joggle whose bend lines run square to the line from the key to the axle. The bend must fit between
+the frame plate and the axle boss. <code>cqp build</code> fails with a message if it doesn't, and the assembly
+reports any frame-plate overlap. The slider region then sits <code>hub_width_offset / 2</code> inboard of
+where a native wide-hub frame's inboard face would be, so check cassette and chain clearance on the
+drive side.</p>
 <p>Coordinates: origin = the frame's nominal axle centre, X forward, Z up, +Y = left. The <code>front</code> view
 looks at the drive side; <code>back</code> at the brake side.</p>
 <h2>Key parameters</h2>
@@ -136,7 +151,32 @@ looks at the drive side; <code>back</code> at the brake side.</p>
 <tr>
 <td><code>hub_width_offset</code></td>
 <td>0</td>
-<td>extra hub OLD (total). e.g. 6 runs a 148 hub in a 142 frame; each insert plate gets 3 mm thinner</td>
+<td>extra hub OLD (total). e.g. 6 runs a 148 hub in a 142 frame</td>
+</tr>
+<tr>
+<td><code>hub_offset_mode</code></td>
+<td>bend</td>
+<td><code>bend</code>: full-thickness plate with a joggle, so the axle region sits <code>hub_width_offset / 2</code> outboard of the slider region. <code>thin</code>: the whole plate gets thinner instead</td>
+</tr>
+<tr>
+<td><code>bend_start</code> / <code>bend_length</code></td>
+<td>30 / 8</td>
+<td>where the bend starts (from the key centre towards the axle) and its sloped length</td>
+</tr>
+<tr>
+<td><code>relief_brake_posts</code> / <code>relief_brake_axle</code> / <code>relief_axle_slider</code> / <code>relief_slider_brake</code></td>
+<td>10 / 10 / 8 / 0</td>
+<td>maximum depth of the concave cut-outs between those features (0 = none)</td>
+</tr>
+<tr>
+<td><code>relief_margin</code> / <code>relief_round</code> / <code>relief_min_chord</code></td>
+<td>4 / 3 / 15</td>
+<td>material kept around the key, bolts, adjuster, brake bosses and the UDH stop; fillet at the cut ends; shortest cut worth making</td>
+</tr>
+<tr>
+<td><code>brake_edge_radius</code></td>
+<td>3</td>
+<td>rounds the post-mount and flat-mount boss corners in the side profile</td>
 </tr>
 <tr>
 <td><code>axle_offset_x</code></td>
@@ -227,4 +267,4 @@ the Tange IS insert.</p>
 </ul>
 <h2>Materials</h2>
 <p>Intended for 7075-T6 or 6061-T6 aluminium, or stainless steel, machined. Contact faces around the
-axle must be flat and left unpainted.</p></div><p class="meta" style="margin-top:3em">Generated 2026-10-12 01:55 UTC · units: mm</p></main></body></html>
+axle must be flat and left unpainted.</p></div><p class="meta" style="margin-top:3em">Generated 2026-10-12 02:08 UTC · units: mm</p></main></body></html>
