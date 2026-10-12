@@ -13,18 +13,25 @@ GHOST = {"color": "#9aa5ad", "alpha": 0.35}
 
 
 def frame_plate(p, lay, side):
-    """The frame's socket plate (fixed), outboard of the insert; the insert key rides in its slot."""
-    x0, x1 = p["frame_edge_x"], p["frame_plate_front"]
-    h = p["tongue_height"] / 2 + p["frame_plate_margin"]
+    """The frame's socket plate (fixed), outboard of the insert; the insert key rides in its slot.
+
+    Cut away around the insert's axle boss over the slide travel.
+    """
     t = p["frame_plate_thickness"]
-    plate = cq.Workplane("XY").center((x0 + x1) / 2, 0).rect(x1 - x0, 2 * h).extrude(t)
-    plate = plate.edges("|Z").fillet(4)
-    slot = (cq.Workplane("XY").workplane(offset=-1)
-            .center(p["bolt_x"] + p["bolt_pitch"] / 2, 0)
-            .slot2D(c.key_length(p) + p["slot_travel"], p["key_width"] + 0.2).extrude(t + 2))
-    plate = plate.cut(slot)
+    m = p["frame_plate_margin"]
+    xc, z = p["bolt_x"] + p["bolt_pitch"] / 2, p["bolt_z"]
+    slot_len = p["key_length"] + p["slot_travel"]
+    plate = (cq.Workplane("XY").center(xc, z).rect(slot_len + 2 * m, p["key_width"] + 2 * m)
+             .extrude(t).edges("|Z").fillet(m))
+    slot = (cq.Workplane("XY").workplane(offset=-1).center(xc, z)
+            .slot2D(slot_len, p["key_width"] + 0.2).extrude(t + 2))
+    r = p["boss_radius"] + p["frame_boss_clearance"]
+    relief = (cq.Workplane("XY").workplane(offset=-1).center(lay.ax, lay.ay)
+              .slot2D(p["slot_travel"] + 2 * r, 2 * r).extrude(t + 2))
+    plate = plate.cut(slot).cut(relief)
     w = plate.rotate((0, 0, 0), (1, 0, 0), 90).translate((0, -lay.seat_y, 0))
     return w.mirror("XZ") if side == "left" else w
+
 
 def axle_ref(p, lay):
     D = p["nds_thickness_D"]
@@ -54,10 +61,21 @@ lay = rinfo["lay"]
 c.describe(PARAMS, "right", rinfo)
 c.describe(PARAMS, "left", linfo)
 
-show_object(c.to_world(right, lay, "right"), name="dropout_right", options={"color": "#5b6770"})
-show_object(c.to_world(left, lay, "left"), name="dropout_left", options={"color": "#5b6770"})
-show_object(frame_plate(PARAMS, lay, "right"), name="frame_plate_right", options=GHOST)
-show_object(frame_plate(PARAMS, lay, "left"), name="frame_plate_left", options=GHOST)
+parts = {
+    "dropout_right": c.to_world(right, lay, "right"),
+    "dropout_left": c.to_world(left, lay, "left"),
+    "frame_plate_right": frame_plate(PARAMS, lay, "right"),
+    "frame_plate_left": frame_plate(PARAMS, lay, "left"),
+}
+for side in ("right", "left"):
+    clash = parts[f"dropout_{side}"].intersect(parts[f"frame_plate_{side}"])
+    vol = sum(v.Volume() for v in clash.solids().vals())
+    print(f"{side}: insert / frame plate overlap {vol:.2f} mm^3 "
+          f"({'OK' if vol < 1 else 'CLASH'}; the key is meant to sit inside the slot)")
+
+for name, obj in parts.items():
+    show_object(obj, name=name, options=GHOST if name.startswith("frame") else
+                {"color": "#5b6770"})
 show_object(axle_ref(PARAMS, lay), name="thru_axle", options={"color": "#222222", "alpha": 0.6})
 show_object(hub_ref(PARAMS, lay), name="hub", options={"color": "#c8b07a", "alpha": 0.3})
 if linfo["brake"]:

@@ -1,9 +1,9 @@
 """Left (non-drive) sliding dropout insert: 12 mm thru-axle + choice of rear brake mount.
 
 brake_mount: "flat" (34 mm), "post" (74 mm), "is" (IS2000, 51 mm) or "none". Mount positions
-come from disc_brake_mounts.py (Verdone ordinates) for `rotor`, rotated by `brake_angle`
-about the axle; lateral positions from the rotor face of the actual hub (frame_old +
-hub_width_offset). Shared parameters live in _common.PARAMS. Units: mm.
+come from disc_brake_mounts.py (Verdone ordinates) for `rotor`, rotated by
+`caliper_mount_angle` about the axle (default None: per-mount angles measured off the Tange
+inserts); lateral positions from the rotor face of the actual hub (frame_old + hub_width_offset). Shared parameters live in _common.PARAMS. Units: mm.
 """
 import _common as c
 import udh_frame_spec as udh
@@ -24,7 +24,7 @@ def build(**p):
     bg = info["brake"]
     if bg:
         mp = bg["pos"]
-        print(f"left: {mp.mount} mount for {mp.rotor:g} rotor at {bg['angle']:g} deg: "
+        print(f"left: {mp.mount} mount for {mp.rotor:g} rotor, caliper mount angle {bg['angle']:g} deg: "
               f"face {mp.top:.2f}, bolts {mp.bolt1:.2f} / {mp.bolt2:.2f} along the mount line")
         for name, b in (("bolt1", mp.bolt1), ("bolt2", mp.bolt2)):
             x, z = bg["pt"](b, mp.top)

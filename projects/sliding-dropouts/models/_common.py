@@ -11,10 +11,12 @@ Inboard features (NDS hub boss, brake posts) have negative local z.
 
 Construction
 ------------
-The insert sits on the INBOARD face of the frame's slotted socket plate. Two M6 bolts pass
-outboard -> inboard through slots in the frame plate into tapped holes in the insert's tongue,
-and an M4 adjuster screw pushes on the tongue's front end. The frame plate stops ahead of the
-axle boss, so the boss can be as thick as the UDH / thru-axle interface needs.
+Proportions follow the Tange sliding inserts in the project folder (tange-*.jpg/png): a flat
+plate from the axle boss up and forward to a raised key holding two clamp bolts. The insert sits
+on the INBOARD face of the frame's socket plate with the key riding in the frame slot; two M5
+bolts through an outer clamp plate thread into the key, and an M4 adjuster screw pushes on the
+tongue's front end. The frame plate is cut away around the axle boss (over the slide travel),
+so the boss can be as thick as the UDH / thru-axle interface needs.
 
 Hub width offset: the frame's plate seats are fixed, so a wider hub is taken up by a thinner
 insert plate (each side loses hub_width_offset / 2), with the spec interface faces moving out.
@@ -44,24 +46,25 @@ PARAMS = {
     "axle_offset_y": 0.0,         # + = axle up
     "plate_thickness": 9.0,       # insert plate thickness at hub_width_offset = 0
     "min_plate_thickness": 4.0,   # refuse to build thinner plates
-    "tongue_length": 86.0,        # nominal axle -> front end of the insert
-    "tongue_height": 26.0,
+    "tongue_length": 56.0,        # nominal axle -> front end of the insert
+    "tongue_height": 24.0,        # tongue (key region) height, centred on bolt_z
     "corner_radius": 5.0,
-    "boss_radius": 19.0,          # outer profile around the axle (UDH: R14.5-19)
-    "bolt_x": 48.0,               # first clamp bolt, forward of nominal axle
-    "bolt_pitch": 20.0,
-    "key_width": 13.0,            # raised key around the bolts; rides in the frame slot
+    "boss_radius": 18.0,          # outer profile around the axle (UDH: R14.5-19)
+    "bolt_x": 24.0,               # first clamp bolt, forward of nominal axle
+    "bolt_z": 26.0,               # clamp bolt / key line, above nominal axle (Tange: key up and forward)
+    "bolt_pitch": 18.0,
+    "key_length": 31.0,           # raised key around the bolts; rides in the frame slot
+    "key_width": 10.0,
     "key_height": 3.0,            # key protrudes outboard into the slot (< frame plate thickness)
-    "bolt_tap_dia": 5.0,          # M6x1 tap drill
+    "bolt_tap_dia": 4.2,          # M5x0.8 tap drill
     "adjuster_tap_dia": 3.3,      # M4x0.7 tap drill, along X into the front end
     "adjuster_depth": 10.0,
 }
 
 FRAME_PLATE = {
     "frame_plate_thickness": 6.0,
-    "frame_edge_x": 30.0,         # frame plate rear edge, forward of nominal axle
-    "frame_plate_front": 104.0,
-    "frame_plate_margin": 7.0,    # plate beyond the insert tongue, top and bottom
+    "frame_plate_margin": 7.0,    # plate around the key slot
+    "frame_boss_clearance": 1.5,  # frame cut-out around the insert's axle boss
     "slot_travel": 12.0,          # slot length minus key length (adjustment range)
 }
 
@@ -123,10 +126,11 @@ def outline_circles(p: dict, lay: Layout):
     r = p["corner_radius"]
     h = p["tongue_height"] / 2 - r
     xf = p["tongue_length"] - r
+    z = p["bolt_z"]
     return [
         ((lay.ax, lay.ay), p["boss_radius"]),
-        ((0.0, h), r), ((0.0, -h), r),
-        ((xf, h), r), ((xf, -h), r),
+        ((0.0, z + h), r), ((0.0, z - h), r),
+        ((xf, z + h), r), ((xf, z - h), r),
     ]
 
 
@@ -140,10 +144,6 @@ def cylinder(x, y, r, z0, z1) -> cq.Workplane:
     return cq.Workplane("XY").workplane(offset=z0).center(x, y).circle(r).extrude(z1 - z0)
 
 
-def key_length(p: dict) -> float:
-    return p["bolt_pitch"] + p["key_width"]
-
-
 def tongue_holes(body: cq.Workplane, p: dict, lay: Layout) -> cq.Workplane:
     """Raised slot key, tapped clamp-bolt holes (through) and the front adjuster hole.
 
@@ -152,17 +152,17 @@ def tongue_holes(body: cq.Workplane, p: dict, lay: Layout) -> cq.Workplane:
     """
     key = (
         cq.Workplane("XY").workplane(offset=lay.t - 0.01)
-        .center(p["bolt_x"] + p["bolt_pitch"] / 2, 0)
-        .slot2D(key_length(p), p["key_width"]).extrude(p["key_height"] + 0.01)
+        .center(p["bolt_x"] + p["bolt_pitch"] / 2, p["bolt_z"])
+        .slot2D(p["key_length"], p["key_width"]).extrude(p["key_height"] + 0.01)
     )
     body = body.union(key)
     for i in range(2):
         x = p["bolt_x"] + i * p["bolt_pitch"]
-        body = body.cut(cylinder(x, 0, p["bolt_tap_dia"] / 2, -50, 50))
+        body = body.cut(cylinder(x, p["bolt_z"], p["bolt_tap_dia"] / 2, -50, 50))
     # Runs out of whatever is ahead of the tongue (e.g. a brake web), so drill long.
     adj = (
         cq.Workplane("YZ").workplane(offset=p["tongue_length"] - p["adjuster_depth"])
-        .center(0, lay.t / 2).circle(p["adjuster_tap_dia"] / 2).extrude(200)
+        .center(p["bolt_z"], lay.t / 2).circle(p["adjuster_tap_dia"] / 2).extrude(200)
     )
     return body.cut(adj)
 
@@ -190,7 +190,7 @@ def faces_area(shape: cq.Shape, normal, tol=1e-3) -> float:
 
 RIGHT_PARAMS = {
     "udh_pocket_radius": 15.5,    # R15 MIN (+ position tol 0.5): the hanger turns inside this
-    "udh_thick_forward": 28.0,    # full-thickness (16.5) region extends this far ahead of the axle
+    "udh_thick_forward": 28.0,    # below the axle, the full-thickness (16.5) region runs this far forward
     "udh_bore_clearance": 0.05,   # 20 +0.1/0 bore -> 20.05 nominal
 }
 
@@ -199,12 +199,14 @@ def build_right(p: dict) -> tuple[cq.Workplane, dict]:
     lay = layout(p)
     depth = UDH_RECESS_DEPTH.nominal
     total = depth + UDH_FLOOR_TO_OUTBOARD.nominal          # 16.5 inboard face -> outboard face
+    # Full thickness: the boss, plus the plate below the axle back from udh_thick_forward
+    # (so the whole pocket floor has 12.5 behind it). The key region above stays thin.
     body = plate(p, lay)
-    thick = plate(p, lay, depth=total).intersect(
-        cq.Workplane("XY").box(400, 400, 100, centered=(False, True, False))
-        .translate((lay.ax + p["udh_thick_forward"] - 400, 0, -1))
+    below = plate(p, lay, depth=total).intersect(
+        cq.Workplane("XY").box(400, 400, 100, centered=(False, False, False))
+        .translate((lay.ax + p["udh_thick_forward"] - 400, lay.ay - 400, -1))
     )
-    body = body.union(thick)
+    body = body.union(below).union(cylinder(lay.ax, lay.ay, p["boss_radius"], 0, total))
 
     # Hanger pocket, 4 deep from the inboard face; floor is datum B. Upper edge: R15 MIN arc.
     # Below the axle it is bounded only by the forward rotational stop face (14.4 from the
@@ -232,7 +234,6 @@ def build_right(p: dict) -> tuple[cq.Workplane, dict]:
         "lay": lay,
         "total": total,
         "stop_area": stop_area,
-        "frame_edge_min": lay.ax + p["udh_thick_forward"],
     }
     return body, info
 
@@ -247,18 +248,26 @@ LEFT_PARAMS = {
     "axle_hole_dia": 12.2,        # clearance for the 11.96 axle shank
     "brake_mount": "flat",        # "flat" | "post" | "is" | "none"
     "rotor": 160,                 # rotor diameter the mount is positioned for
-    "brake_angle": 0.0,           # deg; rotates the mount frame about the axle, 0 = along +X
+    "caliper_mount_angle": None,  # deg about the axle (0 = mount line along +X, face up);
+                                  # None = CALIPER_MOUNT_ANGLE for the chosen mount
     "rotor_clearance": 2.0,       # brake bosses stay this far outboard of the rotor
     "brake_boss_size": 18.0,      # boss width along the bolt line
     "post_height": 16.0,          # post mount: boss depth below the mount face (>= 13 engagement)
     "flat_tab_thickness": 10.0,   # flat mount: tab under the mount face (bolts from below)
-    "is_tab_thickness": 8.0,      # IS: tab thickness outboard of its face
+    "is_tab_thickness": 8.0,      # IS: ear thickness outboard of its face
+    "is_ear_radius": 6.5,         # IS: ear boss radius around each hole
     "post_tap_dia": 5.0,          # M6 tapped (post mount threads in the frame)
     "flat_hole_dia": 5.5,         # M5 clearance (caliper is threaded)
+    "flat_head_dia": 10.0,        # counterbore for the M5 bolt heads, below the tab
+    "flat_head_clearance": 8.0,
     "is_hole_dia": 6.2,           # IS tab holes are unthreaded
 }
 
 ROTOR_THICKNESS = 1.75  # Verdone's lateral values assume 1.75 mm rotors
+
+# Default caliper mount angles, measured off the Tange L inserts (tange-left-*.jpg, 160 rotor):
+# IS ears up and behind/above the axle, flat-mount arm and post-mount flange up and forward.
+CALIPER_MOUNT_ANGLE = {"flat": 55.0, "post": 38.0, "is": 51.0}
 
 
 def brake_geometry(p: dict, lay: Layout):
@@ -266,7 +275,10 @@ def brake_geometry(p: dict, lay: Layout):
     if p["brake_mount"] == "none":
         return None
     mp = dbm.mount_position(p["brake_mount"], p["rotor"])
-    a = math.radians(p["brake_angle"])
+    angle = p["caliper_mount_angle"]
+    if angle is None:
+        angle = CALIPER_MOUNT_ANGLE[mp.mount]
+    a = math.radians(angle)
     u = (math.cos(a), math.sin(a))
     v = (-math.sin(a), math.cos(a))
 
@@ -276,7 +288,7 @@ def brake_geometry(p: dict, lay: Layout):
     rotor_face = dbm.rotor_face_from_center(int(round(lay.hub_old)))
     lateral = rotor_face + dbm.SCREWS_FROM_INNER_ROTOR_FACE[mp.mount]
     return {
-        "pos": mp, "u": u, "v": v, "pt": pt, "angle": p["brake_angle"],
+        "pos": mp, "u": u, "v": v, "pt": pt, "angle": angle,
         "rotor_face": rotor_face, "lateral": lateral,
         "z_lat": lateral - lay.y_in,                                  # local z of bolt plane / IS face
         "z_rotor": rotor_face + ROTOR_THICKNESS + p["rotor_clearance"] - lay.y_in,
@@ -294,11 +306,11 @@ def _block(pt, u, v, u0, u1, v0, v1, z0, z1) -> cq.Workplane:
     )
 
 
-def _hole_along(pt, axis, uu, vv, r, length) -> cq.Workplane:
-    """Cylinder through mount point (uu, vv), axis in the local xy plane."""
-    c = pt(uu, vv)
-    return cq.Workplane(cq.Plane(origin=(c[0], c[1], 0), xDir=(0, 0, 1),
-                                 normal=(axis[0], axis[1], 0))).circle(r).extrude(length, both=True)
+def _rod(pt, v, uu, v0, v1, z, r) -> cq.Workplane:
+    """Cylinder along the mount's v axis at u = uu from v0 to v1, at local z (bolt plane)."""
+    c = pt(uu, v0)
+    return cq.Workplane(cq.Plane(origin=(c[0], c[1], z), xDir=(0, 0, 1),
+                                 normal=(v[0], v[1], 0))).circle(r).extrude(v1 - v0)
 
 
 def build_left(p: dict) -> tuple[cq.Workplane, dict]:
@@ -310,7 +322,7 @@ def build_left(p: dict) -> tuple[cq.Workplane, dict]:
         mp = bg["pos"]
         # Web circles stay below the mount face (the caliper / adapter sits above it).
         depth = {"post": p["post_height"], "flat": p["flat_tab_thickness"]}.get(mp.mount, 2 * s)
-        r = min(s, depth / 2)
+        r = p["is_ear_radius"] if mp.mount == "is" else min(s, depth / 2)
         vc = mp.top if mp.mount == "is" else mp.top - r
         for b in (mp.bolt1, mp.bolt2):
             extra.append((bg["pt"](b, vc), r))
@@ -329,26 +341,31 @@ def build_left(p: dict) -> tuple[cq.Workplane, dict]:
             for b in (b1, b2):
                 body = body.union(_block(pt, u, v, b - s, b + s, mp.top - p["post_height"],
                                          mp.top, z0, lay.t))
-                body = body.cut(_hole_along(pt, v, b, mp.top, p["post_tap_dia"] / 2, 13.0))
+                body = body.cut(_rod(pt, v, b, mp.top - 13.0, mp.top + 1, bg["z_lat"],
+                                     p["post_tap_dia"] / 2))
         elif mp.mount == "flat":
             z0 = max(bg["z_lat"] - s / 2, bg["z_rotor"])
             body = body.union(_block(pt, u, v, b1 - s, b2 + s, mp.top - p["flat_tab_thickness"],
                                      mp.top, z0, lay.t))
+            tab0 = mp.top - p["flat_tab_thickness"]
             for b in (b1, b2):
-                body = body.cut(_hole_along(pt, v, b, mp.top, p["flat_hole_dia"] / 2, 40.0))
+                # Through the tab, plus a counterbore below it for the bolt head.
+                body = body.cut(_rod(pt, v, b, tab0 - 1, mp.top + 1, bg["z_lat"],
+                                     p["flat_hole_dia"] / 2))
+                body = body.cut(_rod(pt, v, b, tab0 - p["flat_head_clearance"], tab0,
+                                     bg["z_lat"], p["flat_head_dia"] / 2))
         elif mp.mount == "is":
             z0 = bg["z_lat"]
             z1 = max(lay.t, z0 + p["is_tab_thickness"])
-            body = body.union(_block(pt, u, v, b1 - s, b2 + s, mp.top - s, mp.top + s, z0, z1))
             for b in (b1, b2):
                 c = pt(b, mp.top)
+                body = body.union(cylinder(c[0], c[1], p["is_ear_radius"], z0, z1))
                 body = body.cut(cylinder(c[0], c[1], p["is_hole_dia"] / 2, -50, 50))
 
     body = body.cut(cylinder(lay.ax, lay.ay, p["axle_hole_dia"] / 2, -50, 50))
     body = tongue_holes(body, p, lay)
     info = {
         "lay": lay, "brake": bg, "z_out": z_out, "hub_z": hub_z,
-        "frame_edge_min": lay.ax + p["boss_radius"],
     }
     return body, info
 
@@ -361,6 +378,3 @@ def describe(p: dict, side: str, info: dict) -> None:
           f"frame seat |Y| = {lay.seat_y:.2f}")
     print(f"{side}: axle at X {lay.ax:+.1f} Z {lay.ay:+.1f} from nominal "
           f"(chainstay {p['axle_offset_x']:+.1f})")
-    edge = info["frame_edge_min"] + 1.0
-    flag = "" if p.get("frame_edge_x", edge) >= edge else "  ** CLASHES with frame_edge_x **"
-    print(f"{side}: frame plate rear edge must be >= {edge:.1f} ahead of nominal axle{flag}")
