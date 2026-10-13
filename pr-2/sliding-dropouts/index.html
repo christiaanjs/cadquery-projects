@@ -35,7 +35,7 @@ details summary { cursor:pointer; color:var(--muted); }
 td.set, .set code { font-weight:600; color:var(--accent); }
 .overrides { margin:4px 0 0; font-size:.82rem; color:var(--muted); }
 </style></head>
-<body><main><p class="meta"><a href="../">← All projects</a></p><h1>Sliding dropouts (UDH / thru-axle)</h1><div><span class="tag">bike</span><span class="tag">mechanical</span></div><p>Parametric left/right sliding dropout inserts: SRAM UDH + 12 mm thru-axle, flat/post/IS brake mount, axle X/Y and hub-width offsets.</p><h2>Variants</h2><div class="grid"><a class="card" href="tange-is/"><img loading="lazy" src="tange-is/assembly-iso.svg" alt=""><div><strong>Tange layout, IS mount</strong><span class="muted">Tange-style proportions with the axle at the nominal position, IS brake mount, 142 hub.</span><p class="overrides set"><code>axle_offset_x = 0.0</code> · <code>axle_offset_y = 0.0</code> · <code>brake_mount = is</code> · <code>hub_width_offset = 0.0</code></p></div></a><a class="card" href="flat-offset-148/"><img loading="lazy" src="flat-offset-148/assembly-iso.svg" alt=""><div><strong>Flat mount, axle 32 back &amp; up, 148 hub</strong><span class="muted">Axle 32 mm rearward and 32 mm up from the Tange position, flat-mount brake, +6 mm hub width (142 frame, 148 hub) with a bent plate.</span><p class="overrides set"><code>axle_offset_x = 32.0</code> · <code>axle_offset_y = 32.0</code> · <code>brake_mount = flat</code> · <code>hub_width_offset = 6.0</code> · <code>hub_offset_mode = bend</code></p></div></a><a class="card" href="is-offset-148/"><img loading="lazy" src="is-offset-148/assembly-iso.svg" alt=""><div><strong>IS mount, axle 24 back &amp; up, 148 hub</strong><span class="muted">IS brake mount, +6 mm hub width (142 frame, 148 hub) with a bent plate. 24 mm back and up is the smallest equal offset that lets the bend clear the frame plate (about 23.75 mm with the bend ending 2 mm before the axle boss).</span><p class="overrides set"><code>axle_offset_x = 24.0</code> · <code>axle_offset_y = 24.0</code> · <code>brake_mount = is</code> · <code>hub_width_offset = 6.0</code> · <code>hub_offset_mode = bend</code> · <code>bend_start = 29.0</code></p></div></a><a class="card" href="is-32-conversion/"><img loading="lazy" src="is-32-conversion/assembly-iso.svg" alt=""><div><strong>IS mount, axle 32 back &amp; up</strong><span class="muted">IS brake mount, offset for 32&quot; wheel conversion.</span><p class="overrides set"><code>axle_offset_x = 32.0</code> · <code>axle_offset_y = 32.0</code> · <code>brake_mount = is</code> · <code>hub_width_offset = 0.0</code> · <code>caliper_mount_angle = 30.0</code></p></div></a></div><h2>About</h2><div class="readme"><h1>Sliding dropouts (UDH / thru-axle)</h1>
+<body><main><p class="meta"><a href="../">← All projects</a></p><h1>Sliding dropouts (UDH / thru-axle)</h1><div><span class="tag">bike</span><span class="tag">mechanical</span></div><p>Parametric left/right sliding dropout inserts: SRAM UDH + 12 mm thru-axle, flat/post/IS brake mount, axle X/Y and hub-width offsets.</p><h2>Variants</h2><div class="grid"><a class="card" href="tange-is/"><img loading="lazy" src="tange-is/assembly-iso.svg" alt=""><div><strong>Tange layout, IS mount</strong><span class="muted">Tange-style proportions with the axle at the nominal position, IS brake mount, 142 hub.</span><p class="overrides set"><code>axle_offset_x = 0.0</code> · <code>axle_offset_y = 0.0</code> · <code>brake_mount = is</code></p></div></a><a class="card" href="flat-offset-148/"><img loading="lazy" src="flat-offset-148/assembly-iso.svg" alt=""><div><strong>Flat mount, axle 32 back &amp; up, 148 hub</strong><span class="muted">Axle 32 mm rearward and 32 mm up from the Tange position, flat-mount brake, 148 hub on the 149 mm (142 OLD + 7) seats, with a bent plate.</span><p class="overrides set"><code>axle_offset_x = 32.0</code> · <code>axle_offset_y = 32.0</code> · <code>brake_mount = flat</code> · <code>hub_old = 148.0</code> · <code>hub_offset_mode = bend</code></p></div></a><a class="card" href="is-offset-148/"><img loading="lazy" src="is-offset-148/assembly-iso.svg" alt=""><div><strong>IS mount, axle 24 back &amp; up, 148 hub</strong><span class="muted">IS brake mount, 148 hub on the 149 mm (142 OLD + 7) seats, with a bent plate. 24 mm back and up is the smallest equal offset that lets the bend clear the frame plate (about 23.75 mm with the bend ending 2 mm before the axle boss).</span><p class="overrides set"><code>axle_offset_x = 24.0</code> · <code>axle_offset_y = 24.0</code> · <code>brake_mount = is</code> · <code>hub_old = 148.0</code> · <code>hub_offset_mode = bend</code> · <code>bend_start = 29.0</code></p></div></a><a class="card" href="is-32-conversion/"><img loading="lazy" src="is-32-conversion/assembly-iso.svg" alt=""><div><strong>IS mount, axle 32 back &amp; up</strong><span class="muted">IS brake mount, offset for 32&quot; wheel conversion.</span><p class="overrides set"><code>axle_offset_x = 32.0</code> · <code>axle_offset_y = 32.0</code> · <code>brake_mount = is</code> · <code>caliper_mount_angle = 30.0</code></p></div></a></div><h2>About</h2><div class="readme"><h1>Sliding dropouts (UDH / thru-axle)</h1>
 <p>Parametric left and right sliding dropout inserts for a 12 mm thru-axle rear end:</p>
 <ul>
 <li><strong>Right (drive):</strong> SRAM UDH hangerless interface (coaxial hanger / Full Mount RD).</li>
@@ -90,19 +90,19 @@ page, drawings and downloads:</p>
 <td><code>tange-is</code></td>
 <td>IS mount</td>
 <td>0 / 0 (Tange proportions)</td>
-<td>142 (frame 142)</td>
+<td>142 on 149 seats (the default)</td>
 </tr>
 <tr>
 <td><code>flat-offset-148</code></td>
 <td>flat mount</td>
 <td>32 / 32 (back and up)</td>
-<td>148 (frame 142, <code>hub_width_offset</code> = 6, bent plate)</td>
+<td><code>hub_old</code> = 148 on 149 seats, bent plate</td>
 </tr>
 <tr>
 <td><code>is-offset-148</code></td>
 <td>IS mount</td>
 <td>24 / 24 (back and up)</td>
-<td>148 (frame 142, <code>hub_width_offset</code> = 6, bent plate, <code>bend_start</code> = 29)</td>
+<td><code>hub_old</code> = 148 on 149 seats, bent plate, <code>bend_start</code> = 29</td>
 </tr>
 </tbody>
 </table>
@@ -139,18 +139,17 @@ largest (by area removed) that:
   brake boss facing the plate, the IS ear rings and the UDH stop face;
 - doesn't cut into any other feature.</p>
 <p><code>cqp build</code> prints each relief's depth and edge length.</p>
-<p><strong>Frame / hub interface.</strong> Three spacings, all face to face (twice the distance from the centreline),
-set where the insert meets the frame and the hub:
-- <code>frame_seat_span</code>: the frame's insert seats. This is fixed by the frame, and the slider region sits on it.
-- <code>hub_old</code> and <code>hub_gap</code>: the hub fitted, and the gap per side between each hub end face and the
-  insert's inboard face in the axle region (3.5 for UDH, which gives the spec's OLD + 7). That face
-  is at <code>hub_old / 2 + hub_gap</code>.</p>
+<p><strong>Frame / hub interface.</strong> The model takes two spacings, both face to face (twice the distance from
+the centreline), plus the gap between them:
+- <code>frame_seat_span</code>: the frame's insert seats. The frame fixes this, and the slider region sits on it.
+  The default 149 is the UDH native fit for a 142 hub (OLD + 7).
+- <code>hub_old</code>: the target hub width (OLD, end face to end face).
+- <code>hub_gap</code>: the gap per side between each hub end face and the insert's inboard face in the axle
+  region (3.5 for UDH, which gives the spec's OLD + 7). That face is at <code>hub_old / 2 + hub_gap</code>.</p>
 <p>The axle region therefore sits <code>step = hub_old / 2 + hub_gap - frame_seat_span / 2</code> per side outboard
 of the seat (or inboard, if negative). <code>cqp build</code> prints the spacings, the step, and whether the
-insert face spacing is within the UDH limit (OLD + 7, -0/+3).</p>
-<p>You can set these directly or by the shorthand used so far: if <code>frame_seat_span</code> is <code>None</code> it is
-<code>frame_old + 2 × hub_gap</code>, and if <code>hub_old</code> is <code>None</code> it is <code>frame_old + hub_width_offset</code>. So
-<code>hub_width_offset = 6</code> on a 142 frame means a 148 hub on seats built for 142 (a 3.0 mm step per side).</p>
+insert face spacing is within the UDH limit (OLD + 7, -0/+3). For example, 149 seats with a 148 hub
+(<code>hub_old = 148</code>) is a 3.0 mm step per side: a wider hub on a frame built for 142.</p>
 <p><em>Example: a frame built for a flat dropout plate with a 135 mm QR hub, with a 142 mm thru-axle insert
 in the same seats.</em> A QR dropout bears on the hub locknuts, so the seat spacing is 135. Use
 <code>frame_seat_span = 135</code>, <code>hub_old = 142</code>, <code>hub_gap = 3.5</code>: the insert faces end up 149 apart (UDH
@@ -187,18 +186,13 @@ looks at the drive side; <code>back</code> at the brake side.</p>
 </tr>
 <tr>
 <td><code>frame_seat_span</code></td>
-<td>None</td>
-<td>face-to-face spacing of the frame's insert seats; <code>None</code> → <code>frame_old + 2 × hub_gap</code></td>
+<td>149</td>
+<td>face-to-face spacing of the frame's insert seats</td>
 </tr>
 <tr>
 <td><code>hub_old</code></td>
-<td>None</td>
-<td>hub OLD fitted; <code>None</code> → <code>frame_old + hub_width_offset</code></td>
-</tr>
-<tr>
-<td><code>frame_old</code> / <code>hub_width_offset</code></td>
-<td>142 / 0</td>
-<td>shorthand for the two above: the hub OLD the seats were built for, and extra hub width beyond it (e.g. 6: a 148 hub on a 142 frame)</td>
+<td>142</td>
+<td>target hub width (OLD, end face to end face)</td>
 </tr>
 <tr>
 <td><code>hub_offset_mode</code></td>
@@ -312,9 +306,9 @@ the Tange IS insert.</p>
   the insert is a plain convex hull in the plate plane.</li>
 <li>Rotor lateral data only covers 142 and 148 mm hubs. Other hub widths raise an error unless
   <code>brake_mount = "none"</code>.</li>
-<li><strong>Rotor shift with <code>hub_width_offset</code>:</strong> the brake mount follows the actual hub's rotor position
-  from <code>disc_brake_mounts.ROTOR_FACE_FROM_CENTER</code>: 53.25 for 142, 55.25 for 148. So +6 mm of hub
-  width moves the rotor out <strong>2.0 mm</strong>, not <code>hub_width_offset / 2</code> = 3.0 mm, even though the hub
+<li><strong>Rotor shift with hub width:</strong> the brake mount follows the actual hub's rotor position
+  from <code>disc_brake_mounts.ROTOR_FACE_FROM_CENTER</code>: 53.25 for 142, 55.25 for 148. So a hub 6 mm wider
+  moves the rotor out <strong>2.0 mm</strong>, not 3.0 mm (half the extra width), even though the hub
   faces move 3.0 mm. Verdone gives 53.25 in his list and 52.25 in his equation text for 142 (see
   the note in <code>disc_brake_mounts.py</code>). 52.25 would give exactly 3.0 mm, which matches Boost moving
   the whole hub 3 mm per side. Confirm which value is right before machining a brake mount.</li>
@@ -325,4 +319,4 @@ the Tange IS insert.</p>
 </ul>
 <h2>Materials</h2>
 <p>Intended for 7075-T6 or 6061-T6 aluminium, or stainless steel, machined. Contact faces around the
-axle must be flat and left unpainted.</p></div><p class="meta" style="margin-top:3em">Generated 2026-10-13 00:50 UTC · units: mm</p></main></body></html>
+axle must be flat and left unpainted.</p></div><p class="meta" style="margin-top:3em">Generated 2026-10-13 01:12 UTC · units: mm</p></main></body></html>
