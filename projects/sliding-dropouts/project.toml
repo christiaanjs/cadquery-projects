@@ -34,4 +34,4 @@ params = { axle_offset_x = 24.0, axle_offset_y = 24.0, brake_mount = "is", hub_w
 slug = "is-32-conversion"
 title = "IS mount, axle 32 back & up"
 description = "IS brake mount, offset for 32\" wheel conversion."
-params = { axle_offset_x = 32.0, axle_offset_y = 32.0, brake_mount = "is", hub_width_offset = 0.0 }
+params = { axle_offset_x = 32.0, axle_offset_y = 32.0, brake_mount = "is", hub_width_offset = 0.0, caliper_mount_angle = 30.0 }
