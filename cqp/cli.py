@@ -57,7 +57,7 @@ def cmd_site(args):
 def cmd_serve(args):
     from .server import serve
 
-    serve(load_project(args.slug), port=args.port)
+    serve(load_project(args.slug), port=args.port, variant=args.variant)
 
 
 def cmd_check(args):
@@ -97,6 +97,7 @@ def main(argv=None):
     s = sub.add_parser("serve", help="live 3D viewer that reloads on save")
     s.add_argument("slug")
     s.add_argument("--port", type=int, default=5001)
+    s.add_argument("--variant", help="variant to show first (default: the first one)")
     s.set_defaults(fn=cmd_serve)
 
     s = sub.add_parser("site", help="build the static site (viewer + drawings)")

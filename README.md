@@ -98,7 +98,14 @@ and downloads. Overrides need a `build()` function: the file runs as usual, then
 `build(**{**PARAMS, **overrides})` and keeps only that geometry and output. `build()` may call
 `show_object` itself for named or coloured parts. A key that no model has in `PARAMS` fails the
 build, so typos are caught. `cqp build <slug> --variant <v>` and `cqp render <slug> --variant <v>`
-work on one variant; `cqp render` and `cqp serve` otherwise use the `PARAMS` defaults.
+work on one variant; `cqp render` without `--variant` uses the `PARAMS` defaults.
+
+`cqp serve <slug>` shows a variant picker next to the model picker (plus a "Model defaults (PARAMS)"
+entry). It starts on the first variant, or `--variant <v>` / `?variant=<v>`. Each (variant, model)
+is built when first shown, so switching is quick after the first time, and the camera stays put.
+Saving a model file or a helper marks everything stale and rebuilds what you view; a build error
+shows in the panel while the previous geometry stays on screen. Editing `project.toml` reloads the
+variant list and parameters.
 
 ## Publishing
 

@@ -200,3 +200,47 @@ def test_variant_slug_validation(tmp_path):
     """)
     with pytest.raises(ProjectError, match="slug"):
         _ = project.variants
+
+
+def test_serve_builds_variants_on_request(tmp_path):
+    from cqp.server import create_app
+
+    project = _variant_project(tmp_path, """
+        [[variants]]
+        slug = "small"
+        params = { w = 5 }
+        [[variants]]
+        slug = "big"
+        params = { w = 50 }
+    """)
+    client = create_app(project).test_client()
+    status = client.get("/status").get_json()
+    assert [v["slug"] for v in status["variants"]] == ["small", "big"]
+    assert status["models"] == ["m"]
+
+    def glb(variant):
+        r = client.get("/model.glb", query_string={"model": "m", "variant": variant})
+        assert r.status_code == 200 and r.data[:4] == b"glTF"
+        return r.data
+
+    small, big, defaults = glb("small"), glb("big"), glb("")
+    assert len({small, big, defaults}) == 3          # each parameter set builds its own geometry
+    assert client.get("/model.glb?model=m&variant=nope").status_code == 404
+    assert client.get("/model.glb?model=nope").status_code == 500
+
+
+def test_serve_reports_build_errors_per_variant(tmp_path):
+    from cqp.server import create_app
+
+    project = _variant_project(tmp_path, """
+        [[variants]]
+        slug = "bad"
+        params = { w = 0 }
+        [[variants]]
+        slug = "ok"
+        params = { w = 5 }
+    """)
+    client = create_app(project).test_client()
+    bad = client.get("/model.glb?model=m&variant=bad")
+    assert bad.status_code == 500 and b"m.py" in bad.data          # error text, not a stale file
+    assert client.get("/model.glb?model=m&variant=ok").status_code == 200

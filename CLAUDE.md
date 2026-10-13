@@ -14,7 +14,7 @@ See `README.md` for the full model/project format.
 4. **Look at it before handing off:** `cqp render <slug> --view iso` (and `--view front|top|side`,
    `--variant <v>` for a variant's parameters), then
    Read `projects/<slug>/preview*.png`. Check dimensions/labels as well as the shape.
-5. `cqp serve <slug>` for the interactive viewer (user-facing; needs a browser).
+5. `cqp serve <slug> [--variant <v>]` for the interactive viewer (user-facing; needs a browser; has a variant picker).
 6. Keep `projects/<slug>/README.md` current (status, dimensions, materials, notes) when models change meaningfully.
 7. Before committing: `ruff check . && pytest -q && cqp check`.
 
