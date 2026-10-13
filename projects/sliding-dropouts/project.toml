@@ -1,0 +1,37 @@
+title = "Sliding dropouts (UDH / thru-axle)"
+description = "Parametric left/right sliding dropout inserts: SRAM UDH + 12 mm thru-axle, flat/post/IS brake mount, axle X/Y and hub-width offsets."
+units = "mm"
+tags = ["bike", "mechanical"]
+views = ["iso", "front", "back", "top", "side"]
+background = "#ffffff"
+
+[models.dropout_right]
+views = ["iso", "front", "back", "top"]
+
+[models.dropout_left]
+views = ["iso", "front", "back", "top"]
+
+# Each variant is built and published separately (its own page, drawings and downloads).
+[[variants]]
+slug = "tange-is"
+title = "Tange layout, IS mount"
+description = "Tange-style proportions with the axle at the nominal position, IS brake mount, 142 hub."
+params = { axle_offset_x = 0.0, axle_offset_y = 0.0, brake_mount = "is" }
+
+[[variants]]
+slug = "flat-offset-148"
+title = "Flat mount, axle 32 back & up, 148 hub"
+description = "Axle 32 mm rearward and 32 mm up from the Tange position, flat-mount brake, 148 hub on the 149 mm (142 OLD + 7) seats, with a bent plate."
+params = { axle_offset_x = 32.0, axle_offset_y = 32.0, brake_mount = "flat", hub_old = 148.0, hub_offset_mode = "bend" }
+
+[[variants]]
+slug = "is-offset-148"
+title = "IS mount, axle 24 back & up, 148 hub"
+description = "IS brake mount, 148 hub on the 149 mm (142 OLD + 7) seats, with a bent plate. 24 mm back and up is the smallest equal offset that lets the bend clear the frame plate (about 23.75 mm with the bend ending 2 mm before the axle boss)."
+params = { axle_offset_x = 24.0, axle_offset_y = 24.0, brake_mount = "is", hub_old = 148.0, hub_offset_mode = "bend", bend_start = 29.0 }
+
+[[variants]]
+slug = "is-32-conversion"
+title = "IS mount, axle 32 back & up"
+description = "IS brake mount, offset for 32\" wheel conversion."
+params = { axle_offset_x = 32.0, axle_offset_y = 32.0, brake_mount = "is", caliper_mount_angle = 30.0 }

@@ -25,6 +25,20 @@ def slugify(name: str) -> str:
 
 
 @dataclass
+class Variant:
+    """A named set of parameter overrides; the project is built and published once per variant.
+
+    Configured in project.toml as ``[[variants]]`` tables with ``slug``, ``title``, optional
+    ``description`` and ``params`` (overrides applied to every model that has those PARAMS).
+    """
+
+    slug: str
+    title: str
+    description: str = ""
+    params: dict = field(default_factory=dict)
+
+
+@dataclass
 class Project:
     slug: str
     path: Path
@@ -66,6 +80,29 @@ class Project:
     @property
     def bom(self) -> list[dict]:
         return list(self.config.get("bom", []))
+
+    @property
+    def variants(self) -> list[Variant]:
+        out = []
+        for i, v in enumerate(self.config.get("variants", [])):
+            title = v.get("title") or v.get("slug") or f"Variant {i + 1}"
+            slug = v.get("slug") or slugify(title)
+            if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", slug):
+                raise ProjectError(f"{self.slug}: variant slug '{slug}' must be lower-case a-z, 0-9, -")
+            if slug in {x.slug for x in out}:
+                raise ProjectError(f"{self.slug}: duplicate variant slug '{slug}'")
+            params = v.get("params", {})
+            if not isinstance(params, dict):
+                raise ProjectError(f"{self.slug}: variant '{slug}' params must be a table")
+            out.append(Variant(slug, title, v.get("description", ""), dict(params)))
+        return out
+
+    def variant(self, slug: str) -> Variant:
+        for v in self.variants:
+            if v.slug == slug:
+                return v
+        names = ", ".join(v.slug for v in self.variants) or "none configured"
+        raise ProjectError(f"{self.slug}: no variant '{slug}' (variants: {names})")
 
     @property
     def models_dir(self) -> Path:

@@ -82,7 +82,30 @@ exploded = false                            # skip the exploded view for assembl
 item = "M5 x 12 screw"
 qty = 4
 price = 0.25
+
+[[variants]]                                # optional: publish several parameter sets
+slug = "wide"                               # URL segment: <project>/wide/
+title = "Wide version"
+description = "Shown on the variant's card and page."
+params = { width = 60 }                     # overrides for every model whose PARAMS has the key
 ```
+
+### Variants
+
+With `[[variants]]`, every model is built once per variant into `build/<slug>/<variant>/`. The
+project page shows a card per variant, and each variant gets its own page with viewer, drawings
+and downloads. Overrides need a `build()` function: the file runs as usual, then the loader calls
+`build(**{**PARAMS, **overrides})` and keeps only that geometry and output. `build()` may call
+`show_object` itself for named or coloured parts. A key that no model has in `PARAMS` fails the
+build, so typos are caught. `cqp build <slug> --variant <v>` and `cqp render <slug> --variant <v>`
+work on one variant; `cqp render` without `--variant` uses the `PARAMS` defaults.
+
+`cqp serve <slug>` shows a variant picker next to the model picker (plus a "Model defaults (PARAMS)"
+entry). It starts on the first variant, or `--variant <v>` / `?variant=<v>`. Each (variant, model)
+is built when first shown, so switching is quick after the first time, and the camera stays put.
+Saving a model file or a helper marks everything stale and rebuilds what you view; a build error
+shows in the panel while the previous geometry stays on screen. Editing `project.toml` reloads the
+variant list and parameters.
 
 ## Publishing
 

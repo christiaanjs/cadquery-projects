@@ -15,6 +15,7 @@
              padding: 8px 10px; backdrop-filter: blur(4px); }
     #info { top: 10px; left: 10px; max-width: 260px; }
     #info b { color: var(--accent); }
+    #vparams { color: var(--muted); font-size: 11px; word-break: break-word; }
     #status { color: #8f8; } #status.err { color: #f88; }
     #error { color: #f88; white-space: pre-wrap; max-height: 160px; overflow: auto; }
     #parts { top: 10px; right: 10px; max-height: 60vh; overflow: auto; min-width: 140px; }
@@ -35,11 +36,13 @@
   <div class="panel" id="info">
     <h3><b id="title">CadQuery Viewer</b></h3>
     <div id="dims"></div>
+    <div id="vparams"></div>
     <div id="status">Loading…</div>
     <div id="error"></div>
   </div>
   <div class="panel" id="parts" hidden></div>
   <div class="panel" id="bar">
+    <select id="variantsel" hidden title="parameter variant"></select>
     <select id="modelsel" hidden></select>
     <button data-view="iso">Iso</button><button data-view="front">Front</button>
     <button data-view="side">Side</button><button data-view="top">Top</button>
@@ -133,8 +136,34 @@
     }
 
     const loader = new GLTFLoader();
-    function load(url) {
-      loader.load(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), gltf => {
+    let loadSeq = 0;
+    // Fetch first so a server-side build error (HTTP 500 + message) is shown, and the previous
+    // model stays on screen while a rebuild fails.
+    async function load(url) {
+      const seq = ++loadSeq;
+      $('status').textContent = 'Building…'; $('status').className = '';
+      let buf;
+      try {
+        const r = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now());
+        if (seq !== loadSeq) return;                 // a newer request superseded this one
+        if (!r.ok) {
+          $('status').textContent = 'Build error'; $('status').className = 'err';
+          $('error').textContent = await r.text();
+          return;
+        }
+        buf = await r.arrayBuffer();
+      } catch (err) {
+        $('status').textContent = 'Load failed'; $('status').className = 'err';
+        $('error').textContent = String(err?.message || err);
+        return;
+      }
+      loader.parse(buf, '', gltf => { if (seq === loadSeq) show(gltf); }, err => {
+        $('status').textContent = 'Load failed'; $('status').className = 'err';
+        $('error').textContent = String(err?.message || err);
+      });
+    }
+    function show(gltf) {
+      {
         const keepCam = root !== null;
         if (root) scene.remove(root);
         root = gltf.scene;
@@ -167,37 +196,22 @@
         $('status').textContent = 'Model loaded'; $('status').className = '';
         $('error').textContent = '';
         document.body.dataset.ready = '1';
-      }, undefined, err => {
-        $('status').textContent = 'Load failed'; $('status').className = 'err';
-        $('error').textContent = String(err?.message || err);
-      });
+      }
     }
     function niceStep(v) {
       const e = 10 ** Math.floor(Math.log10(v));
       return [1, 2, 5, 10].map(m => m * e).find(s => s >= v) || e;
     }
 
-    // ---- Model selection (static site: manifest.json lists models; live: /status) ----
+    // ---- Model selection (static site: ?model=…; live: /status lists models and variants) ----
+    const urlFor = (model, variant) =>
+      'model.glb?model=' + encodeURIComponent(model) + (variant ? '&variant=' + encodeURIComponent(variant) : '');
+
     async function init() {
       if (q.get('title')) $('title').textContent = q.get('title');
-      const live = q.get('live');
+      if (q.get('live')) return initLive();
       let models = [];
-      if (live) {
-        const cfg = await (await fetch('status')).json();
-        models = (cfg.models || []).map(n => ({ name: n, glb: 'model.glb?model=' + encodeURIComponent(n) }));
-        $('title').textContent = cfg.project || 'CadQuery Viewer';
-        if (cfg.background && !q.get('bg')) bgLum = setBackground(cfg.background);
-        const es = new EventSource('events');
-        es.addEventListener('model', e => {
-          const d = JSON.parse(e.data);
-          if (d.error) { $('status').textContent = 'Build error'; $('status').className = 'err'; $('error').textContent = d.error; }
-          else load(current.glb);
-        });
-        es.addEventListener('config', e => {
-          const c = JSON.parse(e.data);
-          if (c.background && !q.get('bg')) bgLum = setBackground(c.background);
-        });
-      } else if (q.get('model')) {
+      if (q.get('model')) {
         models = q.get('model').split(',').map(f => ({ name: f.replace(/\.glb$/, ''), glb: f }));
       }
       if (!models.length) { $('status').textContent = 'No model specified'; $('status').className = 'err'; return; }
@@ -208,6 +222,48 @@
         sel.onchange = () => { current = models[sel.value]; root = null; load(current.glb); };
       }
       load(current.glb);
+    }
+
+    async function initLive() {
+      let cfg = null, model = null, variant = q.get('variant');   // variant '' = PARAMS defaults
+      const msel = $('modelsel'), vsel = $('variantsel');
+      const reload = () => load(urlFor(model, variant));
+      const fill = async () => {
+        cfg = await (await fetch('status')).json();
+        $('title').textContent = cfg.project || 'CadQuery Viewer';
+        if (cfg.background && !q.get('bg')) bgLum = setBackground(cfg.background);
+        if (!cfg.models.includes(model)) model = cfg.models[0];
+        const slugs = cfg.variants.map(v => v.slug);
+        if (variant === null || (variant && !slugs.includes(variant))) variant = slugs[0] || '';
+        msel.replaceChildren(...cfg.models.map(n => new Option(n, n)));
+        msel.value = model; msel.hidden = cfg.models.length < 2;
+        vsel.replaceChildren(...cfg.variants.map(v => new Option(v.title, v.slug)),
+                             ...(cfg.variants.length ? [new Option('Model defaults (PARAMS)', '')] : []));
+        vsel.value = variant; vsel.hidden = !cfg.variants.length;
+        describe();
+      };
+      const describe = () => {
+        const v = cfg.variants.find(v => v.slug === variant);
+        $('vparams').textContent = v
+          ? Object.entries(v.params).map(([k, x]) => `${k} = ${x}`).join(' · ')
+          : (cfg.variants.length ? 'model defaults' : '');
+        $('vparams').title = v?.description || '';
+      };
+      msel.onchange = () => { model = msel.value; root = null; reload(); };
+      vsel.onchange = () => { variant = vsel.value; describe(); reload(); };   // keep the camera
+      await fill();
+      if (!model) { $('status').textContent = 'No models'; $('status').className = 'err'; return; }
+      const es = new EventSource('events');
+      es.addEventListener('changed', e => {
+        const d = JSON.parse(e.data);
+        if (!d.model || d.model === model) reload();
+      });
+      es.addEventListener('reload', async () => { await fill(); reload(); });
+      es.addEventListener('config', e => {
+        const c = JSON.parse(e.data);
+        if (c.background && !q.get('bg')) bgLum = setBackground(c.background);
+      });
+      reload();
     }
     init();
 
