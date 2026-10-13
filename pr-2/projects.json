@@ -45,7 +45,8 @@
     "variants": [
       "tange-is",
       "flat-offset-148",
-      "is-offset-148"
+      "is-offset-148",
+      "is-32-conversion"
     ]
   }
 ]
