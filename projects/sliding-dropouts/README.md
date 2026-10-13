@@ -73,14 +73,40 @@ largest (by area removed) that:
 
 `cqp build` prints each relief's depth and edge length.
 
-**Hub offset bend.** The frame's plate seat is fixed, so a wider hub would otherwise need a thinner
-plate. With `hub_offset_mode = "bend"` the plate keeps its full thickness. The slider region stays
-on the frame seat and the axle region steps outboard by `hub_width_offset / 2`, joined by a sloped
-joggle whose bend lines run square to the line from the key to the axle. The bend must fit between
-the frame plate and the axle boss. `cqp build` fails with a message if it doesn't, and the assembly
-reports any frame-plate overlap. The slider region then sits `hub_width_offset / 2` inboard of
-where a native wide-hub frame's inboard face would be, so check cassette and chain clearance on the
-drive side.
+**Frame / hub interface.** Three spacings, all face to face (twice the distance from the centreline),
+set where the insert meets the frame and the hub:
+- `frame_seat_span`: the frame's insert seats. This is fixed by the frame, and the slider region sits on it.
+- `hub_old` and `hub_gap`: the hub fitted, and the gap per side between each hub end face and the
+  insert's inboard face in the axle region (3.5 for UDH, which gives the spec's OLD + 7). That face
+  is at `hub_old / 2 + hub_gap`.
+
+The axle region therefore sits `step = hub_old / 2 + hub_gap - frame_seat_span / 2` per side outboard
+of the seat (or inboard, if negative). `cqp build` prints the spacings, the step, and whether the
+insert face spacing is within the UDH limit (OLD + 7, -0/+3).
+
+You can set these directly or by the shorthand used so far: if `frame_seat_span` is `None` it is
+`frame_old + 2 × hub_gap`, and if `hub_old` is `None` it is `frame_old + hub_width_offset`. So
+`hub_width_offset = 6` on a 142 frame means a 148 hub on seats built for 142 (a 3.0 mm step per side).
+
+*Example: a frame built for a flat dropout plate with a 135 mm QR hub, with a 142 mm thru-axle insert
+in the same seats.* A QR dropout bears on the hub locknuts, so the seat spacing is 135. Use
+`frame_seat_span = 135`, `hub_old = 142`, `hub_gap = 3.5`: the insert faces end up 149 apart (UDH
+OLD + 7), a 7 mm step per side. That needs `bend` mode (the 9 mm plate can't be thinned by 7), and
+the bend has to fit between the key slot and the axle boss: with the axle at the Tange position it
+doesn't, while 32 mm back and up with `bend_start` = 30 works.
+
+**Hub offset bend.** With `hub_offset_mode = "bend"` the plate keeps its full thickness. The slider
+region stays on the frame seat and the axle region steps out by `step`, joined by a sloped joggle
+(`bend_start` / `bend_length`) whose bend lines run square to the line from the key to the axle.
+`thin` mode instead thins the whole plate by `step`.
+
+The bend must fit between the key slot and the axle boss. `cqp build` fails with a message if it
+doesn't fit before the boss. In the assembly, when the axle region sits outboard of the seat, the
+frame plate is cut back past the bend over the whole slide travel, because that part of the insert
+passes through the plane of the plate. The build reports any remaining insert / frame-plate overlap,
+and warns if the cut reaches the key slot ("start the bend further from the key"). Where the axle
+region is outboard of a native wide-hub frame's inboard face it also sits closer to the cassette and
+chain on the drive side, so check clearance there.
 
 Coordinates: origin = the frame's nominal axle centre, X forward, Z up, +Y = left. The `front` view
 looks at the drive side; `back` at the brake side.
@@ -88,9 +114,11 @@ looks at the drive side; `back` at the brake side.
 ## Key parameters
 | parameter | default | meaning |
 |---|---|---|
-| `frame_old` | 142 | hub OLD the frame's insert seats were built for |
-| `hub_width_offset` | 0 | extra hub OLD (total). e.g. 6 runs a 148 hub in a 142 frame |
-| `hub_offset_mode` | bend | `bend`: full-thickness plate with a joggle, so the axle region sits `hub_width_offset / 2` outboard of the slider region. `thin`: the whole plate gets thinner instead |
+| `hub_gap` | 3.5 | per side: gap between the hub end face and the insert's inboard face (UDH: OLD + 7) |
+| `frame_seat_span` | None | face-to-face spacing of the frame's insert seats; `None` → `frame_old + 2 × hub_gap` |
+| `hub_old` | None | hub OLD fitted; `None` → `frame_old + hub_width_offset` |
+| `frame_old` / `hub_width_offset` | 142 / 0 | shorthand for the two above: the hub OLD the seats were built for, and extra hub width beyond it (e.g. 6: a 148 hub on a 142 frame) |
+| `hub_offset_mode` | bend | `bend`: full-thickness plate with a joggle, so the axle region sits `step` outboard of the slider region. `thin`: the whole plate gets thinner by `step` instead |
 | `bend_start` / `bend_length` | 30 / 8 | where the bend starts (from the key centre towards the axle) and its sloped length |
 | `relieve_brake_posts` / `relieve_brake_axle` / `relieve_slider_brake` / `relieve_axle_slider` | on / on / on / off | relieve that section of the outline |
 | `relief_max_depth` / `relief_max_ratio` | 12 / 0.35 | deepest a relief may cut in from the hull edge, absolutely and as a fraction of the edge length |
@@ -109,7 +137,7 @@ looks at the drive side; `back` at the brake side.
 
 ## Interface dimensions used
 **UDH (drive side), from `udh_frame_spec.py` / `udh-spec.pdf` sheets 1–3:**
-- Frame span (inboard faces) OLD + 7, so each inboard face sits at (OLD + 7)/2.
+- Frame span (inboard faces) OLD + 7, so with `hub_gap` = 3.5 each inboard face sits at (hub OLD + 7)/2.
 - Hanger pocket 4 deep from the inboard face (floor = datum B), radius 15.5 (R15 MIN + position tol.).
 - 12.5 from datum B to the outboard face, so the boss is 16.5 thick. Ø20.05 bore (20 +0.1/0).
 - Forward rotational stop: pocket wall 14.4 from the axle, normal 30° above +X (forward-up). The

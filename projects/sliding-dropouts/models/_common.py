@@ -41,8 +41,16 @@ import udh_frame_spec as udh  # noqa: E402
 
 # Parameters shared by both inserts (and the assembly).
 PARAMS = {
-    "frame_old": 142,             # hub OLD the frame's dropout seats were built for (142/148/157)
-    "hub_width_offset": 0.0,      # extra hub OLD to adapt to, total (e.g. 6 for a 142 frame -> 148 hub)
+    # Frame / hub interface. The frame's slider seats are fixed; the insert reconciles them with
+    # the hub. Either describe the frame by the hub it was built for (frame_old +
+    # hub_width_offset), or give the spacings directly (frame_seat_span, hub_old), e.g. a QR flat-
+    # dropout frame (seat span 135) taking a 142 hub: frame_seat_span = 135, hub_old = 142.
+    "hub_gap": 3.5,               # per side: hub end face -> insert inboard face (UDH: OLD + 7 -> 3.5)
+    "frame_old": 142,             # hub OLD the frame's seats suit with this gap (142/148/157)
+    "hub_width_offset": 0.0,      # extra hub OLD beyond frame_old (e.g. 6: 148 hub on a 142 frame)
+    "frame_seat_span": None,      # face-to-face spacing of the frame's insert seats;
+                                  #   None -> frame_old + 2 * hub_gap
+    "hub_old": None,              # hub OLD fitted; None -> frame_old + hub_width_offset
     "axle_offset_x": 32.0,        # axle offset from the frame's nominal position; + = rearward (longer stays)
     "axle_offset_y": 32.0,        # + = axle up
     "plate_thickness": 9.0,       # insert plate thickness
@@ -93,17 +101,15 @@ NDS_PROTRUSION_DIA_MIN = udh.DROPOUT["contact_face_dia_min_alt_protrusion"]  # 2
 AXLE_DIA = udh.AXLE["shank_dia"]                            # 11.96 -0.07
 
 
-def frame_span(old: float) -> float:
-    """Inboard face to inboard face, OLD + 7 (sheet 3)."""
-    return udh.frame_span(old)[0]
-
-
 @dataclass
 class Layout:
     hub_old: float
-    y_in: float          # |world Y| of the insert inboard face
+    y_in: float          # |world Y| of the insert inboard face in the axle region
     t: float             # insert plate thickness
     seat_y: float        # |world Y| of the frame plate's inboard face (= insert outboard face)
+    seat_span: float     # face-to-face spacing of the frame's insert seats
+    gap: float           # per-side gap, hub end face -> insert inboard face
+    step: float          # how far the axle region sits outboard of the seat (+) or inboard (-)
     ax: float            # axle centre, local x
     ay: float            # axle centre, local y (world Z)
     zs: float = 0.0      # local z shift of the slider (key) region; non-zero when bent
@@ -112,28 +118,36 @@ class Layout:
 
 
 def layout(p: dict) -> Layout:
-    """Insert placement. Local z = 0 is the hub's inboard face, (OLD + 7) / 2 from centre.
+    """Insert placement. Local z = 0 is the insert's inboard face in the axle region.
 
-    The frame's plate seat is fixed by frame_old. A hub_width_offset moves the hub faces out
-    by offset / 2 per side; "bend" keeps the plate thickness and joggles the slider region
-    back inboard onto the seat (zs = -offset / 2), "thin" thins the whole plate instead.
+    That face sits hub_gap outboard of the hub end face: |Y| = hub_old / 2 + hub_gap. The frame's
+    slider seat is fixed at frame_seat_span / 2, so the axle region is `step` = (hub_old / 2 +
+    hub_gap) - frame_seat_span / 2 further out (+) or in (-) than the seat. "bend" keeps the plate
+    thickness and joggles the slider region onto the seat (zs = -step); "thin" instead thins the
+    whole plate by `step`.
     """
-    off = p["hub_width_offset"]
-    hub_old = p["frame_old"] + off
+    gap = p["hub_gap"]
+    hub_old = p.get("hub_old")
+    if hub_old is None:
+        hub_old = p["frame_old"] + p["hub_width_offset"]
+    seat_span = p.get("frame_seat_span")
+    if seat_span is None:
+        seat_span = p["frame_old"] + 2 * gap
+    y_in = hub_old / 2 + gap
+    step = y_in - seat_span / 2
     t, zs = p["plate_thickness"], 0.0
     if p["hub_offset_mode"] == "thin":
-        t -= off / 2
+        t -= step
         if t < p["min_plate_thickness"]:
             raise ValueError(
-                f"hub_width_offset {off} leaves a {t:.1f} mm insert plate "
+                f"the {step:.1f} mm step between hub and frame seat leaves a {t:.1f} mm insert plate "
                 f"(< {p['min_plate_thickness']}); increase plate_thickness or use 'bend'"
             )
     elif p["hub_offset_mode"] == "bend":
-        zs = -off / 2
+        zs = 0.0 - step + 0.0
     else:
         raise ValueError(f"hub_offset_mode must be 'bend' or 'thin', not {p['hub_offset_mode']!r}")
-    y_in = frame_span(hub_old) / 2
-    return Layout(hub_old, y_in, t, frame_span(p["frame_old"]) / 2 + p["plate_thickness"],
+    return Layout(hub_old, y_in, t, seat_span / 2 + p["plate_thickness"], seat_span, gap, step,
                   0.0 - p["axle_offset_x"], p["axle_offset_y"], zs,
                   p["bolt_x"] + p["bolt_pitch"] / 2, p["bolt_z"])
 
@@ -604,8 +618,9 @@ def build_left(p: dict) -> tuple[cq.Workplane, dict]:
 
     z_out = p["nds_thickness_D"] - (lay.y_in - lay.hub_old / 2)    # outer face, local z
     body = body.union(cylinder(lay.ax, lay.ay, p["boss_radius"], 0, z_out))
-    hub_z = lay.hub_old / 2 - lay.y_in                              # hub contact face (-3.5)
-    body = body.union(cylinder(lay.ax, lay.ay, p["nds_protrusion_dia"] / 2, hub_z, 0.1))
+    hub_z = -lay.gap                                                # hub contact face
+    if lay.gap > 0:
+        body = body.union(cylinder(lay.ax, lay.ay, p["nds_protrusion_dia"] / 2, hub_z, 0.1))
 
     if bg:
         mp, u, v, pt = bg["pos"], bg["u"], bg["v"], bg["pt"]
@@ -647,8 +662,12 @@ def build_left(p: dict) -> tuple[cq.Workplane, dict]:
 
 def describe(p: dict, side: str, info: dict) -> None:
     lay = info["lay"]
-    print(f"{side}: hub OLD {lay.hub_old:g} on a {p['frame_old']:g} frame "
-          f"(offset {p['hub_width_offset']:+g}); frame span OLD+7 = {2 * lay.y_in:.1f}")
+    span = 2 * lay.y_in
+    lo, hi = udh.frame_span(lay.hub_old)[1:]
+    print(f"{side}: hub OLD {lay.hub_old:g}, hub gap {lay.gap:g}/side -> insert face spacing "
+          f"{span:.1f} (UDH OLD + 7 -0/+3 = {lo:g}..{hi:g}: {'OK' if lo - 1e-6 <= span <= hi + 1e-6 else 'OUT'})")
+    print(f"{side}: frame seat spacing {lay.seat_span:g}, axle region {lay.step:+.2f}/side "
+          f"{'outboard of' if lay.step > 0 else 'inboard of' if lay.step < 0 else 'level with'} the seat")
     print(f"{side}: insert plate {lay.t:.2f} thick, inboard face |Y| = {lay.y_in:.2f}, "
           f"frame seat |Y| = {lay.seat_y:.2f}")
     print(f"{side}: axle at X {lay.ax:+.1f} Z {lay.ay:+.1f} from nominal "

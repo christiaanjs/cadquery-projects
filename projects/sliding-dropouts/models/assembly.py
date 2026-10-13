@@ -3,6 +3,8 @@
 Uses the shared defaults in _common.py (PARAMS, RIGHT_PARAMS, LEFT_PARAMS, FRAME_PLATE);
 edit those (or override below) to change both sides together. Units: mm.
 """
+import math
+
 import _common as c
 import cadquery as cq
 import udh_frame_spec as udh
@@ -15,7 +17,9 @@ GHOST = {"color": "#9aa5ad", "alpha": 0.35}
 def frame_plate(p, lay, side):
     """The frame's socket plate (fixed), outboard of the insert; the insert key rides in its slot.
 
-    Cut away around the insert's axle boss over the slide travel.
+    Cut away around the insert's axle boss over the slide travel. When the insert is bent so its
+    axle region sits outboard of the seat, the plate is also cut back past the bend (over the
+    whole slide travel), since that part of the insert passes through the plane of the plate.
     """
     t = p["frame_plate_thickness"]
     m = p["frame_plate_margin"]
@@ -29,8 +33,30 @@ def frame_plate(p, lay, side):
     relief = (cq.Workplane("XY").workplane(offset=-1).center(lay.ax, lay.ay)
               .slot2D(p["slot_travel"] + 2 * r, 2 * r).extrude(t + 2))
     plate = plate.cut(slot).cut(relief)
+    cut = bend_cut(p, lay)
+    if cut is not None:
+        plate = plate.cut(cut)
     w = plate.rotate((0, 0, 0), (1, 0, 0), 90).translate((0, -lay.seat_y, 0))
     return w.mirror("XZ") if side == "left" else w
+
+
+def bend_cut(p, lay):
+    """Solid (in the plate's local frame) beyond the bend line, or None when nothing is raised."""
+    if lay.zs >= 0:
+        return None
+    dx, dy = lay.ax - lay.kx, lay.ay - lay.ky
+    d = math.hypot(dx, dy)
+    dx, dy = dx / d, dy / d
+    # The bend line moves with the insert along X: take its worst case over the slide travel.
+    s_cut = p["bend_start"] - p["frame_boss_clearance"] - p["slot_travel"] / 2 * abs(dx)
+    big = 500.0
+    a = (lay.kx + dx * s_cut, lay.ky + dy * s_cut)
+    n = (-dy, dx)
+    pts = [(a[0] + n[0] * big, a[1] + n[1] * big), (a[0] - n[0] * big, a[1] - n[1] * big),
+           (a[0] - n[0] * big + dx * big, a[1] - n[1] * big + dy * big),
+           (a[0] + n[0] * big + dx * big, a[1] + n[1] * big + dy * big)]
+    t = p["frame_plate_thickness"]
+    return cq.Workplane("XY").workplane(offset=-1).polyline(pts).close().extrude(t + 2)
 
 
 def axle_ref(p, lay):
@@ -68,6 +94,15 @@ def build(**p):
         "frame_plate_right": frame_plate(p, lay, "right"),
         "frame_plate_left": frame_plate(p, lay, "left"),
     }
+    cut = bend_cut(p, lay)
+    if cut is not None:
+        xc, z = p["bolt_x"] + p["bolt_pitch"] / 2, p["bolt_z"]
+        slot = (cq.Workplane("XY").center(xc, z).slot2D(p["key_length"] + p["slot_travel"], p["key_width"])
+                .extrude(p["frame_plate_thickness"]))
+        broke = sum(v.Volume() for v in slot.intersect(cut).solids().vals())
+        print("frame plate: cut back past the bend" + (
+            f"; it breaks into the key slot ({broke:.0f} mm^3): start the bend further from the key"
+            if broke > 0.5 else " (clear of the key slot)"))
     for side in ("right", "left"):
         clash = parts[f"dropout_{side}"].intersect(parts[f"frame_plate_{side}"])
         vol = sum(v.Volume() for v in clash.solids().vals())
