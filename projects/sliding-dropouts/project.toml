@@ -29,3 +29,9 @@ slug = "is-offset-148"
 title = "IS mount, axle 24 back & up, 148 hub"
 description = "IS brake mount, +6 mm hub width (142 frame, 148 hub) with a bent plate. 24 mm back and up is the smallest equal offset that lets the bend clear the frame plate (about 23.75 mm with the bend ending 2 mm before the axle boss)."
 params = { axle_offset_x = 24.0, axle_offset_y = 24.0, brake_mount = "is", hub_width_offset = 6.0, hub_offset_mode = "bend", bend_start = 29.0 }
+
+[[variants]]
+slug = "is-32-conversion"
+title = "IS mount, axle 32 back & up"
+description = "IS brake mount, offset for 32\" wheel conversion."
+params = { axle_offset_x = 32.0, axle_offset_y = 32.0, brake_mount = "is", hub_width_offset = 0.0 }
