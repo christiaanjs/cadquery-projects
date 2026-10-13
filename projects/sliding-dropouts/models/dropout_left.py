@@ -3,7 +3,7 @@
 brake_mount: "flat" (34 mm), "post" (74 mm), "is" (IS2000, 51 mm) or "none". Mount positions
 come from disc_brake_mounts.py (Verdone ordinates) for `rotor`, rotated by
 `caliper_mount_angle` about the axle (default None: per-mount angles measured off the Tange
-inserts); lateral positions from the rotor face of the actual hub (frame_old + hub_width_offset). Shared parameters live in _common.PARAMS. Units: mm.
+inserts); lateral positions from the rotor face of the actual hub (hub_old). Shared parameters live in _common.PARAMS. Units: mm.
 """
 import _common as c
 import udh_frame_spec as udh

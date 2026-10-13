@@ -29,9 +29,9 @@ page, drawings and downloads:
 
 | variant | brake | axle offset (x / y) | hub |
 |---|---|---|---|
-| `tange-is` | IS mount | 0 / 0 (Tange proportions) | 142 (frame 142) |
-| `flat-offset-148` | flat mount | 32 / 32 (back and up) | 148 (frame 142, `hub_width_offset` = 6, bent plate) |
-| `is-offset-148` | IS mount | 24 / 24 (back and up) | 148 (frame 142, `hub_width_offset` = 6, bent plate, `bend_start` = 29) |
+| `tange-is` | IS mount | 0 / 0 (Tange proportions) | 142 on 149 seats (the default) |
+| `flat-offset-148` | flat mount | 32 / 32 (back and up) | `hub_old` = 148 on 149 seats, bent plate |
+| `is-offset-148` | IS mount | 24 / 24 (back and up) | `hub_old` = 148 on 149 seats, bent plate, `bend_start` = 29 |
 
 For `is-offset-148`, 24 mm is the smallest equal back-and-up offset at which the bent plate clears the
 frame plate. With the bend ending 2 mm before the axle boss, the limit is about 23.75 mm; below that,
@@ -73,20 +73,18 @@ largest (by area removed) that:
 
 `cqp build` prints each relief's depth and edge length.
 
-**Frame / hub interface.** Three spacings, all face to face (twice the distance from the centreline),
-set where the insert meets the frame and the hub:
-- `frame_seat_span`: the frame's insert seats. This is fixed by the frame, and the slider region sits on it.
-- `hub_old` and `hub_gap`: the hub fitted, and the gap per side between each hub end face and the
-  insert's inboard face in the axle region (3.5 for UDH, which gives the spec's OLD + 7). That face
-  is at `hub_old / 2 + hub_gap`.
+**Frame / hub interface.** The model takes two spacings, both face to face (twice the distance from
+the centreline), plus the gap between them:
+- `frame_seat_span`: the frame's insert seats. The frame fixes this, and the slider region sits on it.
+  The default 149 is the UDH native fit for a 142 hub (OLD + 7).
+- `hub_old`: the target hub width (OLD, end face to end face).
+- `hub_gap`: the gap per side between each hub end face and the insert's inboard face in the axle
+  region (3.5 for UDH, which gives the spec's OLD + 7). That face is at `hub_old / 2 + hub_gap`.
 
 The axle region therefore sits `step = hub_old / 2 + hub_gap - frame_seat_span / 2` per side outboard
 of the seat (or inboard, if negative). `cqp build` prints the spacings, the step, and whether the
-insert face spacing is within the UDH limit (OLD + 7, -0/+3).
-
-You can set these directly or by the shorthand used so far: if `frame_seat_span` is `None` it is
-`frame_old + 2 × hub_gap`, and if `hub_old` is `None` it is `frame_old + hub_width_offset`. So
-`hub_width_offset = 6` on a 142 frame means a 148 hub on seats built for 142 (a 3.0 mm step per side).
+insert face spacing is within the UDH limit (OLD + 7, -0/+3). For example, 149 seats with a 148 hub
+(`hub_old = 148`) is a 3.0 mm step per side: a wider hub on a frame built for 142.
 
 *Example: a frame built for a flat dropout plate with a 135 mm QR hub, with a 142 mm thru-axle insert
 in the same seats.* A QR dropout bears on the hub locknuts, so the seat spacing is 135. Use
@@ -115,9 +113,8 @@ looks at the drive side; `back` at the brake side.
 | parameter | default | meaning |
 |---|---|---|
 | `hub_gap` | 3.5 | per side: gap between the hub end face and the insert's inboard face (UDH: OLD + 7) |
-| `frame_seat_span` | None | face-to-face spacing of the frame's insert seats; `None` → `frame_old + 2 × hub_gap` |
-| `hub_old` | None | hub OLD fitted; `None` → `frame_old + hub_width_offset` |
-| `frame_old` / `hub_width_offset` | 142 / 0 | shorthand for the two above: the hub OLD the seats were built for, and extra hub width beyond it (e.g. 6: a 148 hub on a 142 frame) |
+| `frame_seat_span` | 149 | face-to-face spacing of the frame's insert seats |
+| `hub_old` | 142 | target hub width (OLD, end face to end face) |
 | `hub_offset_mode` | bend | `bend`: full-thickness plate with a joggle, so the axle region sits `step` outboard of the slider region. `thin`: the whole plate gets thinner by `step` instead |
 | `bend_start` / `bend_length` | 30 / 8 | where the bend starts (from the key centre towards the axle) and its sloped length |
 | `relieve_brake_posts` / `relieve_brake_axle` / `relieve_slider_brake` / `relieve_axle_slider` | on / on / on / off | relieve that section of the outline |
@@ -167,9 +164,9 @@ the Tange IS insert.
   the insert is a plain convex hull in the plate plane.
 - Rotor lateral data only covers 142 and 148 mm hubs. Other hub widths raise an error unless
   `brake_mount = "none"`.
-- **Rotor shift with `hub_width_offset`:** the brake mount follows the actual hub's rotor position
-  from `disc_brake_mounts.ROTOR_FACE_FROM_CENTER`: 53.25 for 142, 55.25 for 148. So +6 mm of hub
-  width moves the rotor out **2.0 mm**, not `hub_width_offset / 2` = 3.0 mm, even though the hub
+- **Rotor shift with hub width:** the brake mount follows the actual hub's rotor position
+  from `disc_brake_mounts.ROTOR_FACE_FROM_CENTER`: 53.25 for 142, 55.25 for 148. So a hub 6 mm wider
+  moves the rotor out **2.0 mm**, not 3.0 mm (half the extra width), even though the hub
   faces move 3.0 mm. Verdone gives 53.25 in his list and 52.25 in his equation text for 142 (see
   the note in `disc_brake_mounts.py`). 52.25 would give exactly 3.0 mm, which matches Boost moving
   the whole hub 3 mm per side. Confirm which value is right before machining a brake mount.

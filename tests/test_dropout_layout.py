@@ -29,12 +29,21 @@ def test_native_frame_has_no_step(common):
     assert (lay.y_in, lay.seat_y, lay.step, lay.zs, lay.t) == (74.5, 83.5, 0.0, 0.0, 9.0)
 
 
-def test_hub_width_offset_matches_previous_behaviour(common):
-    lay = common.layout(params(common, hub_width_offset=6.0))
+def test_wider_hub_on_the_same_seats(common):
+    lay = common.layout(params(common, hub_old=148.0))
     assert lay.hub_old == 148 and lay.y_in == 77.5 and lay.seat_y == 83.5
     assert lay.step == 3.0 and lay.zs == -3.0 and lay.t == 9.0
-    thin = common.layout(params(common, hub_width_offset=6.0, hub_offset_mode="thin"))
+    thin = common.layout(params(common, hub_old=148.0, hub_offset_mode="thin"))
     assert thin.zs == 0 and thin.t == 6.0
+
+
+def test_narrower_hub_steps_the_other_way(common):
+    lay = common.layout(params(common, hub_old=135.0))
+    assert lay.step == -3.5 and lay.zs == 3.5 and lay.t == 9.0
+
+
+def test_old_offset_parameters_are_gone(common):
+    assert "frame_old" not in common.PARAMS and "hub_width_offset" not in common.PARAMS
 
 
 def test_explicit_seat_span_for_a_qr_frame_taking_a_142_hub(common):

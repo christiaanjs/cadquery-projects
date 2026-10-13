@@ -18,8 +18,9 @@ bolts through an outer clamp plate thread into the key, and an M4 adjuster screw
 tongue's front end. The frame plate is cut away around the axle boss (over the slide travel),
 so the boss can be as thick as the UDH / thru-axle interface needs.
 
-Hub width offset: the frame's plate seats are fixed, so a wider hub is taken up by a thinner
-insert plate (each side loses hub_width_offset / 2), with the spec interface faces moving out.
+Frame / hub interface: the frame's insert seats (frame_seat_span apart) are fixed, and the hub
+(hub_old wide) sits hub_gap inside each insert's inboard face. Where the two disagree the axle
+region of the insert is offset from the seat and the plate is bent (or thinned) to take it up.
 
 Specs used (project root): ``udh_frame_spec.py`` (SRAM UDH frame spec 90-7518-190-000 H.14,
 see ``udh-spec.pdf``) and ``disc_brake_mounts.py`` (Verdone rear caliper mount ordinates).
@@ -41,22 +42,20 @@ import udh_frame_spec as udh  # noqa: E402
 
 # Parameters shared by both inserts (and the assembly).
 PARAMS = {
-    # Frame / hub interface. The frame's slider seats are fixed; the insert reconciles them with
-    # the hub. Either describe the frame by the hub it was built for (frame_old +
-    # hub_width_offset), or give the spacings directly (frame_seat_span, hub_old), e.g. a QR flat-
-    # dropout frame (seat span 135) taking a 142 hub: frame_seat_span = 135, hub_old = 142.
+    # Frame / hub interface, all face to face. The frame's insert seats are fixed; the hub is the
+    # one being fitted; the insert's axle region sits hub_gap outboard of each hub end face and
+    # the plate steps (bends) to the seat. Examples: seats 149 + hub 142 is the UDH native fit
+    # (OLD + 7), seats 149 + hub 148 fits a wider hub to a 142 frame, and a QR flat-dropout frame
+    # (seats 135) taking a 142 hub is frame_seat_span = 135, hub_old = 142.
+    "frame_seat_span": 149.0,     # spacing of the frame's insert seats (slider-region inboard faces)
+    "hub_old": 142.0,             # target hub width (OLD, end face to end face)
     "hub_gap": 3.5,               # per side: hub end face -> insert inboard face (UDH: OLD + 7 -> 3.5)
-    "frame_old": 142,             # hub OLD the frame's seats suit with this gap (142/148/157)
-    "hub_width_offset": 0.0,      # extra hub OLD beyond frame_old (e.g. 6: 148 hub on a 142 frame)
-    "frame_seat_span": None,      # face-to-face spacing of the frame's insert seats;
-                                  #   None -> frame_old + 2 * hub_gap
-    "hub_old": None,              # hub OLD fitted; None -> frame_old + hub_width_offset
     "axle_offset_x": 32.0,        # axle offset from the frame's nominal position; + = rearward (longer stays)
     "axle_offset_y": 32.0,        # + = axle up
     "plate_thickness": 9.0,       # insert plate thickness
     "min_plate_thickness": 4.0,   # refuse to build thinner plates (hub_offset_mode "thin")
-    "hub_offset_mode": "bend",    # "bend": full-thickness plate, axle region joggled outboard by
-                                  #   hub_width_offset / 2; "thin": whole plate thinner instead
+    "hub_offset_mode": "bend",    # "bend": full-thickness plate, axle region joggled out (or in)
+                                  #   by the step to the seat; "thin": whole plate thinner instead
     "bend_start": 30.0,           # bend starts this far from the key centre towards the axle
     "bend_length": 8.0,           # length of the sloped transition
     "tongue_length": 56.0,        # nominal axle -> front end of the insert
@@ -126,13 +125,7 @@ def layout(p: dict) -> Layout:
     thickness and joggles the slider region onto the seat (zs = -step); "thin" instead thins the
     whole plate by `step`.
     """
-    gap = p["hub_gap"]
-    hub_old = p.get("hub_old")
-    if hub_old is None:
-        hub_old = p["frame_old"] + p["hub_width_offset"]
-    seat_span = p.get("frame_seat_span")
-    if seat_span is None:
-        seat_span = p["frame_old"] + 2 * gap
+    gap, hub_old, seat_span = p["hub_gap"], p["hub_old"], p["frame_seat_span"]
     y_in = hub_old / 2 + gap
     step = y_in - seat_span / 2
     t, zs = p["plate_thickness"], 0.0
